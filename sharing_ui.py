@@ -12,6 +12,7 @@ from tkinter import ttk, messagebox
 import uuid
 import sharing_setup
 import ui
+from app_info import window_title
 
 
 def terminal_command(args):
@@ -28,7 +29,7 @@ class SharingSetup:
         self.app = app; self.state_dir = state_dir; self.force = force; self.done = done
         self.events = queue.Queue(); self.finished = False; self.result_file = None; self.checking = False
         self.choice_file = state_dir / 'sharing-choice.json'
-        self.window = tk.Toplevel(app.root); self.window.title('ShareScout — sharing setup'); self.window.transient(app.root)
+        self.window = tk.Toplevel(app.root); self.window.title(window_title('Sharing setup')); self.window.transient(app.root)
         self.window.protocol('WM_DELETE_WINDOW', self.close)
         layout = ui.Layout(self.window, 640, 520); frame = layout.body
         ui.label(frame, text='Share this computer', font=ui.heading_font(self.window, 19)).pack(fill='x', pady=(0, 10))

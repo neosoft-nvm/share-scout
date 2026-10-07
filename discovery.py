@@ -5,11 +5,12 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import network
 import ui
+from app_info import window_title
 
 
 def ask_credentials(parent, address, callback):
     dialog = tk.Toplevel(parent)
-    dialog.title('Sign in to this device')
+    dialog.title(window_title('Sign in to this device'))
     dialog.transient(parent); dialog.grab_set()
     layout = ui.Layout(dialog, 480, 410); frame = layout.body
     ui.label(frame, text='Sign in to this device', font=ui.heading_font(dialog, 15)).pack(fill='x')
@@ -41,7 +42,7 @@ class Finder:
         self.address = None
         self.shares = []
         self.window = tk.Toplevel(app.root)
-        self.window.title('Find shared folders')
+        self.window.title(window_title('Find shared folders'))
         self.window.transient(app.root)
         self.window.protocol('WM_DELETE_WINDOW', self.close)
         layout = ui.Layout(self.window, 870, 640); frame = layout.body

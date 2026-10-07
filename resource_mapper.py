@@ -14,6 +14,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import network
 import ui
+from app_info import window_title
 from discovery import Finder, ask_credentials
 from urllib.parse import urlsplit
 
@@ -85,7 +86,7 @@ class App:
             self.items = []
         for item in self.items:
             item['status'] = 'Disconnected'
-        root.title('ShareScout')
+        root.title(window_title())
         style = ttk.Style()
         style.theme_use('clam')
         style.configure('Treeview', rowheight=34)
@@ -180,7 +181,7 @@ class App:
         return int(selection[0]) if selection else None
 
     def add(self):
-        win = tk.Toplevel(self.root); win.title('Add connection')
+        win = tk.Toplevel(self.root); win.title(window_title('Add connection'))
         layout = ui.Layout(win, 570, 520); frame = layout.body
         fields = {}
         for label, key, default in [('Name', 'name', ''), ('Type', 'kind', 'Network share'), ('Server/share or cloud remote name', 'source', ''), ('Drive letter (Windows) or mount folder (Linux)', 'target', 'R:' if WINDOWS else str(Path.home() / 'CloudDrive'))]:

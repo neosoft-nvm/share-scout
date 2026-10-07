@@ -10,12 +10,13 @@ import uuid
 import folder_share
 from sharing_ui import terminal_command
 import ui
+from app_info import window_title
 
 
 class FolderShare:
     def __init__(self, root, state_dir, folder=None, done=None):
         self.state_dir = state_dir; self.done = done; self.finished = False; self.result_file = None
-        self.window = tk.Toplevel(root); self.window.title('ShareScout — share a folder'); self.window.transient(root)
+        self.window = tk.Toplevel(root); self.window.title(window_title('Share a folder')); self.window.transient(root)
         self.window.protocol('WM_DELETE_WINDOW', self.close)
         layout = ui.Layout(self.window, 680, 590); body = layout.body
         ui.label(body, text='Share a folder', font=ui.heading_font(self.window)).pack(fill='x')

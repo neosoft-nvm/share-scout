@@ -3,8 +3,11 @@ import io
 import tarfile
 import subprocess
 import hashlib
+import sys
 
 root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(root))
+from app_info import VERSION
 source = root
 build = root / 'build/deb'
 build.mkdir(parents=True, exist_ok=True)
@@ -32,7 +35,7 @@ def archive(path, entries):
             tar.addfile(info, io.BytesIO(data))
 
 control = f'''Package: resource-mapper
-Version: 0.4.1
+Version: {VERSION}
 Section: net
 Priority: optional
 Architecture: all
@@ -47,7 +50,7 @@ md5 = ''.join(hashlib.md5(data).hexdigest() + '  ' + name + '\n' for name, (data
 archive(build / 'control.tar.gz', {'control': (control.encode(), 0o644), 'md5sums': (md5.encode(), 0o644)})
 archive(build / 'data.tar.gz', files)
 (build / 'debian-binary').write_bytes(b'2.0\n')
-output = root / 'dist/resource-mapper_0.4.1_all.deb'
+output = root / f'dist/resource-mapper_{VERSION}_all.deb'
 output.parent.mkdir(parents=True, exist_ok=True)
 if output.exists(): output.unlink()
 subprocess.run(['ar', 'rcD', str(output), 'debian-binary', 'control.tar.gz', 'data.tar.gz'], cwd=build, check=True)
