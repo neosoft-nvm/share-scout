@@ -31,8 +31,8 @@ class SharingSetup:
         self.window = tk.Toplevel(app.root); self.window.title('ShareScout — sharing setup'); self.window.transient(app.root)
         self.window.protocol('WM_DELETE_WINDOW', self.close)
         layout = ui.Layout(self.window, 640, 520); frame = layout.body
-        ui.label(frame, text='Share this laptop', font=ui.heading_font(self.window, 19)).pack(fill='x', pady=(0, 10))
-        ui.label(frame, text='We check whether this laptop is offering shared folders to your other computers.').pack(fill='x', pady=(0, 14))
+        ui.label(frame, text='Share this computer', font=ui.heading_font(self.window, 19)).pack(fill='x', pady=(0, 10))
+        ui.label(frame, text='We check whether this computer is offering shared folders to your other devices.').pack(fill='x', pady=(0, 14))
         self.status = tk.StringVar(value='Checking Samba and shared folders…')
         ui.label(frame, textvariable=self.status).pack(fill='x', pady=12)
         ui.label(frame, text='If no shared folders are configured, setup can install Samba and create a password-protected folder called “Shared with ShareScout”. Existing shared folders are kept.').pack(fill='x', pady=8)

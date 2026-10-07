@@ -1,6 +1,18 @@
 # ShareScout 0.3 — find, pick, connect
 
-Find shared folders without knowing computer names or share names. Works as a client on Linux desktops and Windows.
+Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
+
+## Project scope
+
+| Capability | Current scope |
+| --- | --- |
+| Run ShareScout | Linux and Windows PCs, including desktops and laptops |
+| Find and connect network folders | Devices offering compatible SMB file sharing, including PCs, NAS devices, and file servers |
+| Connect cloud storage | OneDrive and Google Drive through rclone |
+| Offer local sharing setup | Linux PCs through Samba; Windows sharing uses operating-system settings |
+| Android | Future target; no Android app or installer is available yet |
+
+The goal is a simple **scan → choose a device → choose a folder → connect** experience. Device type should not determine whether a compatible shared folder can be discovered. See [the roadmap](ROADMAP.md) for the planned Android scope.
 
 ## First launch
 
@@ -16,15 +28,15 @@ After setup, open **ShareScout** from your application menu. No terminal is need
 
 ## Sharing check during setup
 
-Setup checks the **local laptop** for a Samba server, configured file shares (including file-manager usershares), and an IPv4 listener on port 445. If sharing is already configured and listening, normal first-run startup keeps it. You can inspect or repair it with **Check sharing**.
+Setup checks the **local Linux computer** for a Samba server, configured file shares (including file-manager usershares), and an IPv4 listener on port 445. If sharing is already configured and listening, normal first-run startup keeps it. You can inspect or repair it with **Check sharing**.
 
 If sharing is missing, setup offers **Set up sharing**. Accepting opens a setup terminal for the operating system’s administrator prompt and the sharing-password prompt. It installs Samba when missing and starts the correct service for Fedora or Zorin/Ubuntu. Declining leaves local sharing settings untouched.
 
 When no file shares are configured, it creates a dedicated, password-protected share named `ShareScout-<your username>` under `/srv/share-scout/<your username>`. A **Shared with ShareScout** shortcut in your home folder points to it. Put files you want to share there. Existing shares and their permissions are kept; the original Samba configuration is backed up before adding a new section, and the new configuration is validated with `testparm` before it replaces the original.
 
-Fedora’s SELinux label is applied only to the dedicated folder. For active firewalld or UFW, setup allows IPv4 TCP port 445 from the current connection’s subnet. It keeps the firewall enabled and does not use a global firewall reload. Custom firewall setups or network isolation can still block access; readiness is verified locally, then you rescan from the other laptop.
+Fedora’s SELinux label is applied only to the dedicated folder. For active firewalld or UFW, setup allows IPv4 TCP port 445 from the current connection’s subnet. It keeps the firewall enabled and does not use a global firewall reload. Custom firewall setups or network isolation can still block access; readiness is verified locally, then you rescan from the other device.
 
-**Run setup on both laptops if both should provide shared folders.** Samba installation is checked on the laptop where setup runs; it does not remotely install software on discovered computers. If a share already exists but its service is stopped, setup keeps the share and offers to enable sharing and repair supported firewall access.
+**Run sharing setup on each Linux PC that should provide shared folders.** Samba installation is checked on the computer where setup runs; it does not remotely install software on discovered computers. If a share already exists but its service is stopped, setup keeps the share and offers to enable sharing and repair supported firewall access.
 
 ## Screen sizes and scaling
 
@@ -35,23 +47,23 @@ Rendered checks on a temporary Linux desktop covered **3840×2160, 1280×720, an
 ## Everyday use
 
 1. On a new installation, finish or skip the sharing check. The app then opens **Find shared folders** and scans your connected IPv4 networks automatically.
-2. Click a computer’s **IP address** in the left list.
+2. Click a device’s **IP address** in the left list.
 3. Click a **shared folder** in the right list.
 4. Click **Connect this folder**. The app remembers it and opens your file manager.
 
-If a computer requires a username and password, a sign-in form appears in the app. Use an account on that computer. The domain is usually blank. If a computer answers but shows no folders, try **Sign in to see more folders**.
+If a device requires a username and password, a sign-in form appears in the app. Use an account on that device. The domain is usually blank. If a device answers but shows no folders, try **Sign in to see more folders**.
 
 Windows chooses an unused drive letter automatically. Linux mounts through GVfs; the folder opens in your file manager and is available through the desktop’s mounted network locations. Most GNOME, Cinnamon, MATE and XFCE desktops support this flow. KDE’s file manager may use its own SMB sign-in when opening a URI.
 
-Next time you open Resource Mapper, remembered connections reconnect. Passwords are kept only in memory by this app, so a protected computer may ask you to sign in again. Windows may reuse its existing operating-system SMB session. Reconnect is on app launch, not a login service.
+Next time you open ShareScout, remembered connections reconnect. Passwords are kept only in memory by this app, so a protected device may ask you to sign in again. Windows may reuse its existing operating-system SMB session. Reconnect is on app launch, not a login service.
 
-## If a computer is missing
+## If a device is missing
 
 Enter its **IPv4 address** and click **Show its folders**. You still do not need a hostname or share name.
 
-Discovery checks TCP port 445 on directly connected IPv4 networks. It finds computers already offering Windows/Samba file sharing. A computer with file sharing disabled will not appear; the owner needs to share a folder first. Firewalls, Wi-Fi guest isolation, VPNs and other subnets can prevent discovery. IPv6-only hosts and other protocols such as NFS are not included.
+Discovery checks TCP port 445 on directly connected IPv4 networks. It finds devices already offering compatible SMB file sharing, such as PCs, NAS devices, and file servers. A device with file sharing disabled will not appear; the owner needs to share a folder first. Firewalls, Wi-Fi guest isolation, VPNs and other subnets can prevent discovery. IPv6-only hosts and other protocols such as NFS are not included.
 
-Typical home networks finish quickly. On large networks, discovery limits each interface to its nearby /24 when the actual network contains more than 4,096 addresses; the screen labels this limit. Use an IP address for a computer beyond that range. Stop and rescan are available.
+Typical home networks finish quickly. On large networks, discovery limits each interface to its nearby /24 when the actual network contains more than 4,096 addresses; the screen labels this limit. Use an IP address for a device beyond that range. Stop and rescan are available.
 
 ## OneDrive and Google Drive
 

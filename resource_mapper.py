@@ -94,7 +94,7 @@ class App:
         layout = ui.Layout(root, 920, 570)
         main = layout.body
         ui.label(main, text='Your shared folders', font=ui.heading_font(root)).pack(fill='x')
-        ui.label(main, text='We find the computers and folders for you. You just choose what to open.').pack(fill='x', pady=(8, 18))
+        ui.label(main, text='We find sharing devices and folders for you. You just choose what to open.').pack(fill='x', pady=(8, 18))
         bar = ttk.Frame(main)
         bar.pack(fill='x', pady=(0, 12))
         ui.buttons(bar, [('Find shared folders', self.find), ('Cloud / manual connection', self.add), ('Cloud sign-in', self.sign_in), ('Check setup', self.check), ('Check sharing', lambda: self.sharing(force=True))], accent=('Find shared folders',), maximum=3)
@@ -104,7 +104,7 @@ class App:
             self.tree.heading(key, text=label); self.tree.column(key, width=width)
         self.tree.bind('<Double-1>', lambda _: self.open())
         ui.buttons(layout.footer, [('Connect', lambda: self.operation(True)), ('Disconnect', lambda: self.operation(False)), ('Open folder', self.open), ('Remove', self.remove)])
-        self.note = tk.StringVar(value='Click Find shared folders to browse your network. No computer names needed.')
+        self.note = tk.StringVar(value='Click Find shared folders to browse your network. No hostnames needed.')
         ui.label(main, textvariable=self.note, wraplength=850).pack(fill='x')
         self.refresh()
         root.protocol('WM_DELETE_WINDOW', self.close)

@@ -9,11 +9,11 @@ import ui
 
 def ask_credentials(parent, address, callback):
     dialog = tk.Toplevel(parent)
-    dialog.title('Sign in to this computer')
+    dialog.title('Sign in to this device')
     dialog.transient(parent); dialog.grab_set()
     layout = ui.Layout(dialog, 480, 410); frame = layout.body
-    ui.label(frame, text='Sign in to this computer', font=ui.heading_font(dialog, 15)).pack(fill='x')
-    ui.label(frame, text=f'Computer: {address}\nUse an account that can open folders on this computer.').pack(fill='x', pady=8)
+    ui.label(frame, text='Sign in to this device', font=ui.heading_font(dialog, 15)).pack(fill='x')
+    ui.label(frame, text=f'Device: {address}\nUse an account that can open folders on this device.').pack(fill='x', pady=8)
     values = {}
     for key, label in [('username', 'Username'), ('password', 'Password'), ('domain', 'Domain (optional — usually leave blank)')]:
         ui.label(frame, text=label).pack(fill='x', pady=(5, 2))
@@ -46,10 +46,10 @@ class Finder:
         self.window.protocol('WM_DELETE_WINDOW', self.close)
         layout = ui.Layout(self.window, 870, 640); frame = layout.body
         ui.label(frame, text='Find shared folders', font=ui.heading_font(self.window)).pack(fill='x')
-        ui.label(frame, text='Choose a computer and folder, then Connect.').pack(fill='x', pady=(8, 16))
+        ui.label(frame, text='Choose a device and folder, then Connect.').pack(fill='x', pady=(8, 16))
         control = ttk.Frame(frame); control.pack(fill='x')
         self.scan_button = ui.buttons(control, [('Scan my network', self.start_scan), ('Stop scan', lambda: self.stop.set())], accent=('Scan my network',), maximum=2)[0]
-        self.status = tk.StringVar(value='Looking for computers on your connected networks…')
+        self.status = tk.StringVar(value='Looking for devices on your connected networks…')
         ui.label(frame, textvariable=self.status, wraplength=800).pack(fill='x', pady=(10, 4))
         self.progress = ttk.Progressbar(frame, maximum=100); self.progress.pack(fill='x', pady=(0, 12))
         lists = ttk.Frame(frame); lists.pack(fill='both', expand=True)
@@ -60,7 +60,7 @@ class Finder:
             left.grid(row=0, column=0, sticky='nsew', padx=(0, 0 if stacked else 12))
             right.grid(row=1 if stacked else 0, column=0 if stacked else 1, sticky='nsew')
         lists.bind('<Configure>', arrange_lists)
-        ui.label(left, text='Computers with file sharing', font=('', 12, 'bold')).pack(fill='x')
+        ui.label(left, text='Devices with file sharing', font=('', 12, 'bold')).pack(fill='x')
         computer_list = ttk.Frame(left); computer_list.pack(fill='both', expand=True, pady=6)
         self.computers = ui.tree(computer_list, columns=('ip',), show='headings', selectmode='browse', height=8)
         self.computers.heading('ip', text='IP address')
@@ -134,7 +134,7 @@ class Finder:
 
     def sign_in(self):
         if not self.address:
-            self.status.set('Pick a computer first.'); return
+            self.status.set('Pick a device first.'); return
         address = self.address
         def signed(credentials):
             self.app.credentials[address] = credentials
@@ -176,7 +176,7 @@ class Finder:
                     count = len(self.computers.get_children())
                     if kind == 'scan_error': self.status.set(event[2])
                     elif not self.address:
-                        self.status.set((f'Found {count} computer(s). Pick one to see its folders.' if count else 'No sharing computers found. Run ShareScout setup on each laptop and choose Set up sharing, then rescan. You can also enter an IP address below.') + ' Scanned: ' + getattr(self, 'scan_label', 'local network'))
+                        self.status.set((f'Found {count} device(s). Pick one to see its folders.' if count else 'No sharing devices found. Enable file sharing on the device, then rescan. On Linux PCs, use ShareScout’s Set up sharing. You can also enter an IP address below.') + ' Scanned: ' + getattr(self, 'scan_label', 'local network'))
                     if kind == 'scan_done' and not event[2]: self.progress['value'] = 100
             else:
                 if generation != self.browse_generation: continue
@@ -185,7 +185,7 @@ class Finder:
                     for i, share in enumerate(self.shares): self.folders.insert('', 'end', iid=str(i), values=(share['name'], share['comment']))
                     self.status.set('Pick a folder, then click Connect this folder.' if self.shares else 'No visible shared folders. Try Sign in to see more folders.')
                 elif kind == 'auth':
-                    self.status.set('Sign-in details were not accepted. Try again.' if event[2] else 'This computer needs a sign-in to show its folders.')
+                    self.status.set('Sign-in details were not accepted. Try again.' if event[2] else 'This device needs a sign-in to show its folders.')
                     self.sign_in()
                 elif kind == 'browse_error': self.status.set(event[2])
         self.window.after(100, self.poll)

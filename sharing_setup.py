@@ -212,7 +212,7 @@ def configure(status_file):
     if current['error']: raise RuntimeError('Samba configuration needs attention: ' + current['error'])
     folder = None
     if not current['shares']:
-        print('\nChoose a sharing password when prompted. Use it when connecting from your other laptop.')
+        print('\nChoose a sharing password when prompted. Use it when connecting from your other device.')
         execute(['sudo', 'smbpasswd', '-a', user.pw_name], capture=False)
         execute(['sudo', sys.executable, str(Path(__file__).resolve()), '--apply', user.pw_name], capture=False)
         folder = SHARE_ROOT / user.pw_name
@@ -234,7 +234,7 @@ def configure(status_file):
     after = inspect()
     if not after['ready']: raise RuntimeError('Samba was configured but could not be verified as listening with a visible share. Check the setup messages and run Check sharing again.')
     result = {'ok': True, 'shares': after['shares'], 'folder': str(folder) if folder else None,
-              'message': 'Sharing is ready locally. Rescan from your other laptop to check network access.'}
+              'message': 'Sharing is ready locally. Rescan from your other device to check network access.'}
     if folder:
         link = Path(user.pw_dir) / 'Shared with ShareScout'
         if not link.exists() and not link.is_symlink():
@@ -242,7 +242,7 @@ def configure(status_file):
             except OSError: print('The folder shortcut could not be created. Use:', folder)
         print('\nPut files to share in:', link)
     Path(status_file).write_text(json.dumps(result))
-    print('\nSetup complete. Rescan from your other laptop.')
+    print('\nSetup complete. Rescan from your other device.')
 
 
 if __name__ == '__main__':
