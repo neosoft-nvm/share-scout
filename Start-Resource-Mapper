@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+ready=1
+for tool in smbclient gio ip; do command -v "$tool" >/dev/null || ready=0; done
+python3 -c 'import tkinter; import gi; from gi.repository import Gio' 2>/dev/null || ready=0
+if (( ready )) && [[ -f "$HOME/.local/share/applications/resource-mapper.desktop" ]]; then exec python3 resource_mapper.py; fi
+# The first launch needs a terminal for the operating system's install/password prompt.
+if [[ -t 0 ]]; then exec bash ./Launch-Linux.sh; fi
+for terminal in ptyxis x-terminal-emulator gnome-terminal kgx konsole xfce4-terminal mate-terminal xterm; do
+  if command -v "$terminal" >/dev/null; then
+    if [[ "$terminal" == ptyxis ]]; then exec "$terminal" --new-window -- bash "$PWD/Launch-Linux.sh"; fi
+    if [[ "$terminal" == gnome-terminal || "$terminal" == kgx ]]; then exec "$terminal" -- bash "$PWD/Launch-Linux.sh"; fi
+    if [[ "$terminal" == xfce4-terminal ]]; then exec "$terminal" -x bash "$PWD/Launch-Linux.sh"; fi
+    exec "$terminal" -e bash "$PWD/Launch-Linux.sh"
+  fi
+done
+if command -v zenity >/dev/null; then zenity --info --text='Open a terminal in this folder and run: bash Launch-Linux.sh'; fi
