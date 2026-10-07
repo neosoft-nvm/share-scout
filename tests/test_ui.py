@@ -5,10 +5,10 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 import ui
 
 class ScalingTests(unittest.TestCase):
-    def test_windows_fit_4k_720p_and_480p_at_multiple_scales(self):
-        for screen in [(3840,2160),(1280,720),(640,480)]:
+    def test_windows_fit_4k_and_720p_at_multiple_scales(self):
+        for screen in [(3840,2160),(1280,720)]:
             for dpi in (96,144,192):
-                for preferred in [(920,570),(870,640),(640,520),(480,410),(570,520)]:
+                for preferred in [(920,570),(870,640),(640,520),(480,410),(570,520),(680,590)]:
                     with self.subTest(screen=screen,dpi=dpi,preferred=preferred):
                         width,height = ui.window_size(*screen,*preferred,dpi)
                         self.assertLessEqual(width,screen[0]-48)

@@ -1,4 +1,4 @@
-# ShareScout 0.3.1 — find, pick, connect
+# ShareScout 0.4 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
 
@@ -9,7 +9,7 @@ Discover and connect shared resources across PCs, network storage, and cloud ser
 | Run ShareScout | Linux and Windows PCs, including desktops and laptops |
 | Find and connect network folders | Devices offering compatible SMB file sharing, including PCs, NAS devices, and file servers |
 | Connect cloud storage | OneDrive and Google Drive through rclone |
-| Offer local sharing setup | Linux PCs through Samba; Windows sharing uses operating-system settings |
+| Offer local sharing setup | Linux PCs through Samba, including chosen folders; Windows opens its shared-folder wizard |
 | Android | Future target; no Android app or installer is available yet |
 
 The goal is a simple **scan → choose a device → choose a folder → connect** experience. Device type should not determine whether a compatible shared folder can be discovered. See [the roadmap](ROADMAP.md) for the planned Android scope.
@@ -40,11 +40,38 @@ Fedora’s SELinux label is applied only to the dedicated folder. For active fir
 
 **Run sharing setup on each Linux PC that should provide shared folders.** Samba installation is checked on the computer where setup runs; it does not remotely install software on discovered computers. If a share already exists but its service is stopped, setup keeps the share and offers to enable sharing and repair supported firewall access.
 
+## Share an existing folder or create a new share
+
+On Linux, click **Share a folder**, then **Choose folder…** or **Create a new folder…**. Choose a share name and access level, then click **Share this folder**. Read-only access is the default; read/write access lets signed-in devices change and delete files. The selected folder and its subfolders are shared, and symbolic links are not followed.
+
+Setup installs Samba if needed, keeps existing shares, validates and backs up the configuration, and configures supported local-network firewall access. Sign in from another device using your Linux username and sharing password. An existing Samba password is retained; a missing account gets a password prompt in the setup terminal. The completion dialog shows the IP address, share name and sign-in account. Scan from another device to verify access.
+
+Choose an owned folder inside your home, `/srv/share-scout`, or a mounted drive under `/media`, `/mnt` or `/run/media`. Sharing your entire home, hidden settings folders, system folders, symbolic-link paths, or names containing `%` or line breaks is not supported. Original Unix ownership and permissions are preserved. On SELinux systems, home-folder sharing explicitly asks before enabling the system-wide `samba_enable_home_dirs` policy if needed; other chosen folders are labeled for Samba. SELinux stays enabled. If later setup steps fail, the error is shown; already completed configuration changes may remain and can be repaired with **Check sharing**.
+
+On Windows, **Share a folder** opens the operating system’s shared-folder wizard. The Linux file-manager integrations below are not installed on Windows.
+
+## Right-click sharing in Linux file managers
+
+Setup and app startup install per-user **Share with ShareScout** actions. They open the same folder-sharing dialog, so sharing requires the user to choose access and click **Share this folder**.
+
+| File manager | Where to find it |
+| --- | --- |
+| Thunar | Right-click a folder → **Share with ShareScout** |
+| Dolphin | Right-click a folder → **Share with ShareScout**; some versions place it under Actions |
+| Nemo | Right-click one local folder → **Share with ShareScout** |
+| Nautilus / GNOME Files | Right-click a folder → **Scripts → Share with ShareScout** |
+| Caja | Right-click a folder → **Scripts → Share with ShareScout** |
+| Other file managers | Open **ShareScout — Share a folder** from the application menu, or add a custom action pointing to the installed share-folder helper |
+
+Reopen your file manager after setup. Thunar actions are merged with existing custom actions, with a backup before changes; malformed existing configuration is left intact. **File-manager shortcuts** in ShareScout reports installed actions and any failures. Installation uses XDG data/config locations and requires no additional file-manager plugins. The default helper is `~/.local/share/sharescout/share-folder`; it accepts one absolute local folder path as an argument.
+
+Integration formats follow the [Thunar custom-action documentation](https://docs.xfce.org/xfce/thunar/custom-actions), [Dolphin service-menu documentation](https://develop.kde.org/docs/apps/dolphin/service-menus/), [GNOME Scripts documentation](https://help.gnome.org/gnome-help/nautilus-behavior.html), and [Nemo action reference](https://github.com/linuxmint/nemo/blob/master/files/usr/share/nemo/action-info.md).
+
 ## Screen sizes and scaling
 
 All five windows have screen-aware sizes and a scrollable body. The main action buttons stay outside that scrolling area at the bottom. Toolbars wrap into multiple rows, discovery lists stack on narrow screens, tables have horizontal and vertical scrolling, and headings shrink on small displays. Keyboard focus scrolls form fields into view.
 
-Rendered checks on a temporary Linux desktop covered **3840×2160, 1280×720, and 640×480**, each at **100%, 150%, and 200%** scaling. Windows DPI awareness is enabled before Tk starts. Actual Windows display behavior still requires Windows-machine testing.
+The minimum display test target is **1280×720**. Current controlled rendering checks cover six windows, including folder sharing, at **1280×720 and 3840×2160**, each at **100%, 150%, and 200%** scaling. The 720p checks use simulated screen bounds on a 4K test display. Earlier releases also checked 640×480. Windows DPI awareness is enabled before Tk starts. Actual Windows display behavior still requires Windows-machine testing.
 
 ## Everyday use
 
@@ -85,7 +112,7 @@ Use **Check setup** if tools are missing. Windows installer logs appear in the i
 
 ## Verification and implementation
 
-Run `python3 -m unittest discover -s tests`. Tests cover network detection, bounded scans, cancellation, share filtering, protected-server errors, encoded folder names, credential transport, and the choose-folder/save/connect/open flow. Tests use controlled discovery responses. Setup tests verify configuration preservation and backups, rejection of invalid configuration, existing-share repair, service/package choices, and scoped firewall commands. UI checks rendered 45 window layouts and verified bottom-button visibility and text width. Live Samba provisioning, remote mapping, and Windows native API behavior still require target-machine testing. No real network scan or system Samba installation was run during development.
+Run `python3 -m unittest discover -s tests`. Tests cover network detection, bounded scans, cancellation, share filtering, protected-server errors, encoded folder names, credential transport, and the choose-folder/save/connect/open flow. Tests use controlled discovery responses. Setup tests verify configuration preservation and backups, rejection of invalid configuration, existing-share repair, service/package choices, and scoped firewall commands. Current UI checks rendered 36 window layouts at the supported display test targets and verified bottom-button visibility and text width. Folder-sharing tests cover owned-path validation, configuration backups and preservation, duplicate names, staging failures, credential reuse, and CLI dispatch. File-manager tests check action generation, existing Thunar actions, malformed configuration, repeated installation, XDG paths and literal argument transport. Actual context-menu visibility and remote folder access still require testing with the target file managers and devices. Live Samba provisioning, remote mapping, and Windows native API behavior still require target-machine testing. No real network scan or system Samba installation was run during development.
 
 Linux share browsing uses [Samba smbclient](https://www.samba.org/samba/docs/current/man-html/smbclient.1.html) and mounting uses [GIO](https://docs.gtk.org/gio/method.File.mount_enclosing_volume.html). Windows uses the native [network share APIs](https://learn.microsoft.com/en-us/windows/win32/netshare/network-share-functions). Cloud mounts use [rclone](https://rclone.org/commands/rclone_mount/).
 
@@ -95,6 +122,6 @@ Sharing setup references: [Samba testparm](https://devel.samba.org/samba/docs/4.
 
 Clone this repository and run `python3 -m unittest discover -s tests` from its root. No pip dependencies are required for the test suite; Python must include Tk. Linux runtime mounting also requires PyGObject/GIO and the system tools installed by the launch script.
 
-To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.3.1_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
+To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.4.0_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
 
 The existing ResourceMapper settings directory and package identifier are retained for compatibility with earlier builds. The application is now named ShareScout.

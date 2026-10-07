@@ -71,6 +71,7 @@ class App:
         self.open_when_connected = set()
         self.finder = None
         self.sharing_dialog = None
+        self.folder_dialog = None
         try:
             self.items = json.loads(CONFIG.read_text())
             if not isinstance(self.items, list):
@@ -97,7 +98,7 @@ class App:
         ui.label(main, text='We find sharing devices and folders for you. You just choose what to open.').pack(fill='x', pady=(8, 18))
         bar = ttk.Frame(main)
         bar.pack(fill='x', pady=(0, 12))
-        ui.buttons(bar, [('Find shared folders', self.find), ('Cloud / manual connection', self.add), ('Cloud sign-in', self.sign_in), ('Check setup', self.check), ('Check sharing', lambda: self.sharing(force=True))], accent=('Find shared folders',), maximum=3)
+        ui.buttons(bar, [('Find shared folders', self.find), ('Share a folder', self.share_folder), ('Cloud / manual connection', self.add), ('Cloud sign-in', self.sign_in), ('Check setup', self.check), ('Check sharing', lambda: self.sharing(force=True))] + ([] if WINDOWS else [('File-manager shortcuts', self.install_shortcuts)]), accent=('Find shared folders',), maximum=3)
         self.tree = ui.tree(main, columns=('kind', 'location', 'status', 'auto'), show='tree headings', selectmode='browse', height=8)
         self.tree.heading('#0', text='Name'); self.tree.column('#0', width=160)
         for key, label, width in [('kind', 'Type', 110), ('location', 'Location', 260), ('status', 'Status', 130), ('auto', 'On launch', 80)]:
@@ -112,7 +113,32 @@ class App:
         root.after(400, self.startup)
         root.after(700, lambda: [self.operation(True, i) for i, item in enumerate(self.items) if item.get('auto')])
 
+    def share_folder(self):
+        if WINDOWS:
+            try: subprocess.Popen(['shrpubw.exe'])
+            except OSError as exc: messagebox.showerror('Share a folder', str(exc))
+            return
+        if self.folder_dialog:
+            self.folder_dialog.window.lift(); return
+        from folder_share_ui import FolderShare
+        def closed(): self.folder_dialog = None
+        self.folder_dialog = FolderShare(self.root, STATE, done=closed)
+
+    def install_shortcuts(self, notify=True):
+        if WINDOWS: return
+        import file_manager
+        try:
+            result = file_manager.install()
+            text = 'Installed: ' + ', '.join(result['installed']) + '\n\nReopen your file manager. In Nautilus/Files and Caja, look under Scripts.'
+            if result['errors']: text += '\n\nCould not install:\n' + '\n'.join(result['errors'])
+            if notify: messagebox.showinfo('Folder-sharing shortcuts', text, parent=self.root)
+            elif result['errors']: self.note.set('Some file-manager shortcuts need attention. Click File-manager shortcuts to check.')
+        except Exception as exc:
+            if notify: messagebox.showerror('Folder-sharing shortcuts', str(exc), parent=self.root)
+            else: self.note.set('File-manager shortcuts could not be installed: ' + str(exc))
+
     def startup(self):
+        self.install_shortcuts(notify=False)
         self.sharing(force='--check-sharing' in sys.argv, done=self.find if not self.items else None)
 
     def sharing(self, force=False, done=None):
@@ -292,6 +318,9 @@ class App:
             messagebox.showinfo('Please wait', 'Wait for the current connection operation to finish.'); return
         if any(p.poll() is None for p in self.processes.values()):
             messagebox.showinfo('Cloud drives still connected', 'Disconnect cloud drives before closing so pending writes can finish.'); return
+        if self.folder_dialog and self.folder_dialog.result_file:
+            messagebox.showinfo('Setup is running', 'Finish or cancel folder sharing in its terminal before closing ShareScout.'); return
+        if self.folder_dialog: self.folder_dialog.close()
         if self.finder: self.finder.close()
         if self.sharing_dialog:
             self.sharing_dialog.done = None; self.sharing_dialog.close()

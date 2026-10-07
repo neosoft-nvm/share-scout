@@ -13,7 +13,8 @@ for path in sorted(source.glob('*.py')):
     files['usr/share/resource-mapper/' + path.name] = (path.read_bytes(), 0o644)
 files['usr/bin/resource-mapper'] = (b'#!/bin/sh\nexec /usr/bin/python3 /usr/share/resource-mapper/resource_mapper.py "$@"\n', 0o755)
 files['usr/share/applications/resource-mapper.desktop'] = (b'[Desktop Entry]\nType=Application\nName=ShareScout\nComment=Find computers and connect shared folders\nExec=resource-mapper\nIcon=folder-remote\nTerminal=false\nCategories=Network;FileManager;\n', 0o644)
-files['usr/share/doc/resource-mapper/README.md'] = (source.joinpath('README.md').read_bytes(), 0o644)
+for document in ('README.md', 'ROADMAP.md'):
+    files['usr/share/doc/resource-mapper/' + document] = (source.joinpath(document).read_bytes(), 0o644)
 
 def archive(path, entries):
     with tarfile.open(path, 'w:gz', format=tarfile.USTAR_FORMAT) as tar:
@@ -31,7 +32,7 @@ def archive(path, entries):
             tar.addfile(info, io.BytesIO(data))
 
 control = f'''Package: resource-mapper
-Version: 0.3.1
+Version: 0.4.0
 Section: net
 Priority: optional
 Architecture: all
@@ -46,7 +47,7 @@ md5 = ''.join(hashlib.md5(data).hexdigest() + '  ' + name + '\n' for name, (data
 archive(build / 'control.tar.gz', {'control': (control.encode(), 0o644), 'md5sums': (md5.encode(), 0o644)})
 archive(build / 'data.tar.gz', files)
 (build / 'debian-binary').write_bytes(b'2.0\n')
-output = root / 'dist/resource-mapper_0.3.1_all.deb'
+output = root / 'dist/resource-mapper_0.4.0_all.deb'
 output.parent.mkdir(parents=True, exist_ok=True)
 if output.exists(): output.unlink()
 subprocess.run(['ar', 'rcD', str(output), 'debian-binary', 'control.tar.gz', 'data.tar.gz'], cwd=build, check=True)

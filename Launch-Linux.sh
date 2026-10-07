@@ -39,4 +39,5 @@ value = value.replace('%', '%%')
 entry = '[Desktop Entry]\nType=Application\nName=ShareScout\nComment=Find and connect shared folders\nExec="' + value + '"\nIcon=folder-remote\nTerminal=false\nCategories=Network;FileManager;\n'
 (Path.home() / '.local/share/applications/resource-mapper.desktop').write_text(entry)
 PY
+python3 "$app_dir/file_manager.py" "$app_dir"
 exec python3 "$app_dir/resource_mapper.py" --check-sharing

@@ -7,7 +7,8 @@ ShareScout connects people to shared resources across PCs, storage devices, and 
 - Discover compatible SMB devices on connected IPv4 networks and list their shared folders.
 - Connect folders from Linux and Windows PCs, with remembered connections.
 - Connect OneDrive and Google Drive through rclone.
-- Offer optional Samba sharing setup on Linux PCs.
+- Offer optional Samba setup and create protected shares from chosen Linux folders.
+- Open the same sharing flow from Thunar, Dolphin, Nemo, Nautilus and Caja actions.
 - Keep discovery, sign-in, and connection controls usable on small and scaled displays.
 
 ## Future Android support

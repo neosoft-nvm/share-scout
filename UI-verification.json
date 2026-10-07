@@ -1,8 +1,264 @@
 {
-  "automated_tests_passed": 43,
-  "rendered_layouts_passed": 45,
-  "render_environment": "Isolated Linux Weston/Xwayland desktop; no real network scanning or Samba provisioning",
+  "automated_tests_passed": 60,
+  "rendered_layouts_passed": 36,
+  "minimum_test_resolution": [
+    1280,
+    720
+  ],
+  "render_environment": "Isolated Linux Weston/Xwayland 4K desktop; 720p screen bounds simulated for all widgets. No real network scan, Samba provisioning or file-manager context menu was run.",
   "checks": [
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 100,
+      "window": "Main",
+      "size": [
+        920,
+        570
+      ],
+      "footer_buttons": 4,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 100,
+      "window": "Discovery",
+      "size": [
+        870,
+        620
+      ],
+      "footer_buttons": 1,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 100,
+      "window": "Add connection",
+      "size": [
+        570,
+        520
+      ],
+      "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 100,
+      "window": "Sign in",
+      "size": [
+        480,
+        410
+      ],
+      "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 100,
+      "window": "Sharing setup",
+      "size": [
+        640,
+        520
+      ],
+      "footer_buttons": 3,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 100,
+      "window": "Share a folder",
+      "size": [
+        680,
+        590
+      ],
+      "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 150,
+      "window": "Main",
+      "size": [
+        1232,
+        620
+      ],
+      "footer_buttons": 4,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 150,
+      "window": "Discovery",
+      "size": [
+        1232,
+        620
+      ],
+      "footer_buttons": 1,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 150,
+      "window": "Add connection",
+      "size": [
+        855,
+        620
+      ],
+      "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 150,
+      "window": "Sign in",
+      "size": [
+        720,
+        615
+      ],
+      "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 150,
+      "window": "Sharing setup",
+      "size": [
+        960,
+        620
+      ],
+      "footer_buttons": 3,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 150,
+      "window": "Share a folder",
+      "size": [
+        1021,
+        620
+      ],
+      "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 200,
+      "window": "Main",
+      "size": [
+        1232,
+        620
+      ],
+      "footer_buttons": 4,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 200,
+      "window": "Discovery",
+      "size": [
+        1232,
+        620
+      ],
+      "footer_buttons": 1,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 200,
+      "window": "Add connection",
+      "size": [
+        1140,
+        620
+      ],
+      "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 200,
+      "window": "Sign in",
+      "size": [
+        960,
+        620
+      ],
+      "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 200,
+      "window": "Sharing setup",
+      "size": [
+        1232,
+        620
+      ],
+      "footer_buttons": 3,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 200,
+      "window": "Share a folder",
+      "size": [
+        1232,
+        620
+      ],
+      "footer_buttons": 2,
+      "visible": true
+    },
     {
       "screen": [
         3840,
@@ -71,6 +327,20 @@
         520
       ],
       "footer_buttons": 3,
+      "visible": true
+    },
+    {
+      "screen": [
+        3840,
+        2160
+      ],
+      "scaling_percent": 100,
+      "window": "Share a folder",
+      "size": [
+        680,
+        590
+      ],
+      "footer_buttons": 2,
       "visible": true
     },
     {
@@ -148,6 +418,20 @@
         3840,
         2160
       ],
+      "scaling_percent": 150,
+      "window": "Share a folder",
+      "size": [
+        1021,
+        885
+      ],
+      "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        3840,
+        2160
+      ],
       "scaling_percent": 200,
       "window": "Main",
       "size": [
@@ -215,422 +499,16 @@
     },
     {
       "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 100,
-      "window": "Main",
-      "size": [
-        920,
-        570
-      ],
-      "footer_buttons": 4,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 100,
-      "window": "Discovery",
-      "size": [
-        870,
-        620
-      ],
-      "footer_buttons": 1,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 100,
-      "window": "Add connection",
-      "size": [
-        570,
-        520
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 100,
-      "window": "Sign in",
-      "size": [
-        480,
-        410
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 100,
-      "window": "Sharing setup",
-      "size": [
-        640,
-        520
-      ],
-      "footer_buttons": 3,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 150,
-      "window": "Main",
-      "size": [
-        1232,
-        620
-      ],
-      "footer_buttons": 4,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 150,
-      "window": "Discovery",
-      "size": [
-        1232,
-        620
-      ],
-      "footer_buttons": 1,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 150,
-      "window": "Add connection",
-      "size": [
-        854,
-        620
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 150,
-      "window": "Sign in",
-      "size": [
-        719,
-        614
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 150,
-      "window": "Sharing setup",
-      "size": [
-        959,
-        620
-      ],
-      "footer_buttons": 3,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
+        3840,
+        2160
       ],
       "scaling_percent": 200,
-      "window": "Main",
+      "window": "Share a folder",
       "size": [
-        1232,
-        620
-      ],
-      "footer_buttons": 4,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 200,
-      "window": "Discovery",
-      "size": [
-        1232,
-        620
-      ],
-      "footer_buttons": 1,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 200,
-      "window": "Add connection",
-      "size": [
-        1142,
-        620
+        1360,
+        1180
       ],
       "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 200,
-      "window": "Sign in",
-      "size": [
-        962,
-        620
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        1280,
-        720
-      ],
-      "scaling_percent": 200,
-      "window": "Sharing setup",
-      "size": [
-        1232,
-        620
-      ],
-      "footer_buttons": 3,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 100,
-      "window": "Main",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 4,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 100,
-      "window": "Discovery",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 1,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 100,
-      "window": "Add connection",
-      "size": [
-        571,
-        380
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 100,
-      "window": "Sign in",
-      "size": [
-        481,
-        380
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 100,
-      "window": "Sharing setup",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 3,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 150,
-      "window": "Main",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 4,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 150,
-      "window": "Discovery",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 1,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 150,
-      "window": "Add connection",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 150,
-      "window": "Sign in",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 150,
-      "window": "Sharing setup",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 3,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 200,
-      "window": "Main",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 4,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 200,
-      "window": "Discovery",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 1,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 200,
-      "window": "Add connection",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 200,
-      "window": "Sign in",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 2,
-      "visible": true
-    },
-    {
-      "screen": [
-        640,
-        480
-      ],
-      "scaling_percent": 200,
-      "window": "Sharing setup",
-      "size": [
-        592,
-        380
-      ],
-      "footer_buttons": 3,
       "visible": true
     }
   ]
