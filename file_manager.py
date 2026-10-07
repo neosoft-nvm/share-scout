@@ -9,6 +9,16 @@ from datetime import datetime
 
 LABEL = 'Share with ShareScout'
 ACTION_ID = 'sharescout-share-folder'
+MANAGERS = {'Dolphin': ('dolphin',), 'Nautilus': ('nautilus',),
+            'Caja': ('caja',), 'Nemo': ('nemo',), 'Thunar': ('thunar', 'Thunar')}
+
+
+def detect_file_managers(environ=None):
+    """Detect native installed managers, including Thunar's alternate binary name."""
+    environ = os.environ if environ is None else environ
+    return [name for name, commands in MANAGERS.items()
+            if any(shutil.which(command, path=environ.get('PATH')) for command in commands)]
+
 
 
 def desktop_quote(value):
@@ -35,6 +45,7 @@ def install(app_dir=None, home=None, environ=None):
     command = 'exec ' + shlex.quote(sys.executable) + ' ' + shlex.quote(str(app_dir / 'folder_share.py')) + ' "$@"\n'
     write(launcher, '#!/bin/sh\n' + command, 0o755)
     quoted = desktop_quote(launcher)
+    detected = detect_file_managers(environ)
     installed = []; errors = []
     def attempt(name, task):
         try: task(); installed.append(name)
@@ -43,16 +54,19 @@ def install(app_dir=None, home=None, environ=None):
                'X-KDE-Protocols=file\nX-KDE-RequiredNumberOfUrls=1\n'
                'X-KDE-Priority=TopLevel\n\n[Desktop Action share]\n'
                f'Name={LABEL}\nIcon=folder-remote\nExec={quoted} %f\n')
-    attempt('Dolphin', lambda: write(data / 'kio/servicemenus/sharescout.desktop', service, 0o755))
-    # Legacy KDE 5 installs still use this location and extra service key.
-    attempt('Dolphin (legacy)', lambda: write(data / 'kservices5/ServiceMenus/sharescout.desktop', service.replace('Type=Service\n', 'Type=Service\nServiceTypes=KonqPopupMenu/Plugin\n'), 0o755))
-    for manager, variable in [('nautilus', 'NAUTILUS_SCRIPT_SELECTED_FILE_PATHS'), ('caja', 'CAJA_SCRIPT_SELECTED_FILE_PATHS')]:
+    if 'Dolphin' in detected:
+        attempt('Dolphin', lambda: write(data / 'kio/servicemenus/sharescout.desktop', service, 0o755))
+        # Legacy KDE 5 installs still use this location and extra service key.
+        attempt('Dolphin (legacy)', lambda: write(data / 'kservices5/ServiceMenus/sharescout.desktop', service.replace('Type=Service\n', 'Type=Service\nServiceTypes=KonqPopupMenu/Plugin\n'), 0o755))
+    for manager in ('nautilus', 'caja'):
+        if manager.capitalize() not in detected: continue
         # File managers supply absolute selection paths in the environment. Avoid shell expansion of those paths.
         script = '#!/bin/sh\n' + 'exec ' + shlex.quote(str(launcher)) + ' --from-file-manager\n'
         attempt(manager.capitalize(), lambda manager=manager, script=script: write(data / manager / 'scripts' / LABEL, script, 0o755))
     nemo = ('[Nemo Action]\nActive=true\n' + f'Name={LABEL}\nComment=Share this folder with your other devices\n'
             f'Exec={quoted} %F\nSelection=s\nExtensions=dir;\nUriScheme=file\nQuote=double\nIcon-Name=folder-remote\n')
-    attempt('Nemo', lambda: write(data / 'nemo/actions/sharescout.nemo_action', nemo))
+    if 'Nemo' in detected:
+        attempt('Nemo', lambda: write(data / 'nemo/actions/sharescout.nemo_action', nemo))
     def thunar():
         path = config / 'Thunar/uca.xml'
         if path.is_symlink(): raise ValueError('Custom actions file is a symbolic link; add the action manually.')
@@ -78,14 +92,18 @@ def install(app_dir=None, home=None, environ=None):
             tree.write(temp, encoding='utf-8', xml_declaration=True)
             temp.replace(path)
         finally: temp.unlink(missing_ok=True)
-    attempt('Thunar', thunar)
+    if 'Thunar' in detected: attempt('Thunar', thunar)
     shortcut = '[Desktop Entry]\nType=Application\nName=ShareScout — Share a folder\nComment=Create a protected network share\n' + f'Exec={quoted}\nIcon=folder-remote\nTerminal=false\nCategories=Network;FileManager;\n'
     attempt('Application menu', lambda: write(data / 'applications/sharescout-share.desktop', shortcut))
-    return {'installed': installed, 'errors': errors}
+    return {'detected': detected, 'installed': installed, 'errors': errors}
 
 
 if __name__ == '__main__':
     result = install(sys.argv[1] if len(sys.argv) > 1 else None)
+    print('Detected file managers:', ', '.join(result['detected']) or 'No supported native file manager found')
     print('ShareScout folder-sharing shortcuts:', ', '.join(result['installed']))
     for error in result['errors']: print('Shortcut could not be installed:', error)
-    print('Reopen your file manager to load new actions. In Files/Nautilus and Caja, use the Scripts submenu.')
+    if result['detected']:
+        print('Reopen your file manager to load new actions. In Files/Nautilus and Caja, use the Scripts submenu.')
+    else:
+        print('Use ShareScout — Share a folder from your application menu, or Share a folder in ShareScout.')

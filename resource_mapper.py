@@ -129,7 +129,10 @@ class App:
         import file_manager
         try:
             result = file_manager.install()
-            text = 'Installed: ' + ', '.join(result['installed']) + '\n\nReopen your file manager. In Nautilus/Files and Caja, look under Scripts.'
+            text = 'Detected file managers: ' + (', '.join(result['detected']) or 'No supported native file manager found')
+            text += '\nInstalled shortcuts: ' + ', '.join(result['installed'])
+            if result['detected']: text += '\n\nReopen your file manager. In Nautilus/Files and Caja, look under Scripts.'
+            else: text += '\n\nUse Share a folder in ShareScout or ShareScout — Share a folder in your application menu.'
             if result['errors']: text += '\n\nCould not install:\n' + '\n'.join(result['errors'])
             if notify: messagebox.showinfo('Folder-sharing shortcuts', text, parent=self.root)
             elif result['errors']: self.note.set('Some file-manager shortcuts need attention. Click File-manager shortcuts to check.')
@@ -328,8 +331,20 @@ class App:
         self.save(); self.root.destroy()
 
 
-if __name__ == '__main__':
-    ui.enable_dpi_awareness()
-    app_root = tk.Tk()
-    App(app_root)
-    app_root.mainloop()
+def main():
+    from single_instance import SingleInstance
+    instance = SingleInstance(STATE)
+    if not instance.acquire():
+        if not instance.activate_existing():
+            print('ShareScout is already running. Its window could not be activated; switch to it using your desktop taskbar.')
+        return
+    try:
+        ui.enable_dpi_awareness()
+        app_root = tk.Tk()
+        App(app_root)
+        instance.attach(app_root)
+        app_root.mainloop()
+    finally: instance.close()
+
+
+if __name__ == '__main__': main()

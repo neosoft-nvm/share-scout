@@ -1,4 +1,4 @@
-# ShareScout 0.4 — find, pick, connect
+# ShareScout 0.4.1 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
 
@@ -26,7 +26,7 @@ For Windows or other Linux distributions, extract the ZIP first.
 
 Zorin/Ubuntu setup installs `libglib2.0-bin` for the `gio` command and `gvfs-backends` for SMB support. If an older download fails with “gvfs-bin has no installation candidate,” use the latest source or ZIP and rerun `bash Launch-Linux.sh`. Version 0.3.1 also fixes this dependency in the Debian package.
 
-After setup, open **ShareScout** from your application menu. No terminal is needed for network browsing or mapping.
+After setup, open **ShareScout** from your application menu. No terminal is needed for network browsing or mapping. ShareScout allows one main session per user: launching it again requests that the existing window come forward. The OS releases the session lock after exit or a crash, so a stale lock file does not prevent restarting. Window activation uses an authenticated localhost connection; if activation fails, the second launch still does not start another session. Standalone file-manager sharing dialogs remain separate from the main session.
 
 ## Sharing check during setup
 
@@ -52,7 +52,7 @@ On Windows, **Share a folder** opens the operating system’s shared-folder wiza
 
 ## Right-click sharing in Linux file managers
 
-Setup and app startup install per-user **Share with ShareScout** actions. They open the same folder-sharing dialog, so sharing requires the user to choose access and click **Share this folder**.
+Setup and each app startup automatically detect supported native file managers by their executable commands and install per-user **Share with ShareScout** actions for those found. Multiple installed managers are supported, and a manager added later is picked up on the next launch. They open the same folder-sharing dialog, so sharing requires the user to choose access and click **Share this folder**.
 
 | File manager | Where to find it |
 | --- | --- |
@@ -63,7 +63,7 @@ Setup and app startup install per-user **Share with ShareScout** actions. They o
 | Caja | Right-click a folder → **Scripts → Share with ShareScout** |
 | Other file managers | Open **ShareScout — Share a folder** from the application menu, or add a custom action pointing to the installed share-folder helper |
 
-Reopen your file manager after setup. Thunar actions are merged with existing custom actions, with a backup before changes; malformed existing configuration is left intact. **File-manager shortcuts** in ShareScout reports installed actions and any failures. Installation uses XDG data/config locations and requires no additional file-manager plugins. The default helper is `~/.local/share/sharescout/share-folder`; it accepts one absolute local folder path as an argument.
+Reopen your file manager after setup. Thunar actions are merged with existing custom actions, with a backup before changes; malformed existing configuration is left intact. **File-manager shortcuts** in ShareScout rechecks detection and reports which managers were found, installed actions, and any failures. If no supported manager is found, the application-menu sharing shortcut is still installed. Sandboxed Flatpak/Snap file-manager integrations are not detected by this native-command check. Installation uses XDG data/config locations and requires no additional file-manager plugins. The default helper is `~/.local/share/sharescout/share-folder`; it accepts one absolute local folder path as an argument.
 
 Integration formats follow the [Thunar custom-action documentation](https://docs.xfce.org/xfce/thunar/custom-actions), [Dolphin service-menu documentation](https://develop.kde.org/docs/apps/dolphin/service-menus/), [GNOME Scripts documentation](https://help.gnome.org/gnome-help/nautilus-behavior.html), and [Nemo action reference](https://github.com/linuxmint/nemo/blob/master/files/usr/share/nemo/action-info.md).
 
@@ -112,7 +112,7 @@ Use **Check setup** if tools are missing. Windows installer logs appear in the i
 
 ## Verification and implementation
 
-Run `python3 -m unittest discover -s tests`. Tests cover network detection, bounded scans, cancellation, share filtering, protected-server errors, encoded folder names, credential transport, and the choose-folder/save/connect/open flow. Tests use controlled discovery responses. Setup tests verify configuration preservation and backups, rejection of invalid configuration, existing-share repair, service/package choices, and scoped firewall commands. Current UI checks rendered 36 window layouts at the supported display test targets and verified bottom-button visibility and text width. Folder-sharing tests cover owned-path validation, configuration backups and preservation, duplicate names, staging failures, credential reuse, and CLI dispatch. File-manager tests check action generation, existing Thunar actions, malformed configuration, repeated installation, XDG paths and literal argument transport. Actual context-menu visibility and remote folder access still require testing with the target file managers and devices. Live Samba provisioning, remote mapping, and Windows native API behavior still require target-machine testing. No real network scan or system Samba installation was run during development.
+Run `python3 -m unittest discover -s tests`. Tests cover network detection, bounded scans, cancellation, share filtering, protected-server errors, encoded folder names, credential transport, and the choose-folder/save/connect/open flow. Tests use controlled discovery responses. Setup tests verify configuration preservation and backups, rejection of invalid configuration, existing-share repair, service/package choices, and scoped firewall commands. Current UI checks rendered 36 window layouts at the supported display test targets and verified bottom-button visibility and text width. Folder-sharing tests cover owned-path validation, configuration backups and preservation, duplicate names, staging failures, credential reuse, and CLI dispatch. Single-instance tests verify duplicate-launch blocking before Tk starts, authenticated window activation, stale metadata, and process-crash recovery. Windows locking still needs Windows-machine verification. File-manager tests check automatic detection, selective installation, fallback behavior, detection of newly added managers, action generation, existing Thunar actions, malformed configuration, repeated installation, XDG paths and literal argument transport. Actual context-menu visibility and remote folder access still require testing with the target file managers and devices. Live Samba provisioning, remote mapping, and Windows native API behavior still require target-machine testing. No real network scan or system Samba installation was run during development.
 
 Linux share browsing uses [Samba smbclient](https://www.samba.org/samba/docs/current/man-html/smbclient.1.html) and mounting uses [GIO](https://docs.gtk.org/gio/method.File.mount_enclosing_volume.html). Windows uses the native [network share APIs](https://learn.microsoft.com/en-us/windows/win32/netshare/network-share-functions). Cloud mounts use [rclone](https://rclone.org/commands/rclone_mount/).
 
@@ -122,6 +122,6 @@ Sharing setup references: [Samba testparm](https://devel.samba.org/samba/docs/4.
 
 Clone this repository and run `python3 -m unittest discover -s tests` from its root. No pip dependencies are required for the test suite; Python must include Tk. Linux runtime mounting also requires PyGObject/GIO and the system tools installed by the launch script.
 
-To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.4.0_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
+To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.4.1_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
 
 The existing ResourceMapper settings directory and package identifier are retained for compatibility with earlier builds. The application is now named ShareScout.

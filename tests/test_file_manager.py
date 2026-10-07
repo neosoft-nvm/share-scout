@@ -8,9 +8,47 @@ import xml.etree.ElementTree as ET
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parents[1]))
 import file_manager
+ORIGINAL_DETECT = file_manager.detect_file_managers
 
 
 class FileManagerTests(unittest.TestCase):
+    def setUp(self):
+        detection = patch.object(file_manager, 'detect_file_managers', return_value=list(file_manager.MANAGERS))
+        self.detect = detection.start(); self.addCleanup(detection.stop)
+
+    def test_detection_uses_executable_availability_and_thunar_alias(self):
+        with patch.object(file_manager.shutil, 'which', side_effect=lambda command, path=None: '/bin/' + command if command in ('nautilus', 'Thunar') else None):
+            result = ORIGINAL_DETECT({'PATH': '/custom/bin'})
+        self.assertEqual(result, ['Nautilus', 'Thunar'])
+
+    def test_only_detected_managers_receive_actions(self):
+        self.detect.return_value = ['Nautilus']
+        with tempfile.TemporaryDirectory() as folder:
+            home = Path(folder); result = file_manager.install(home/'app', home, {})
+            self.assertEqual(result['detected'], ['Nautilus'])
+            self.assertEqual(result['installed'], ['Nautilus', 'Application menu'])
+            self.assertTrue((home/'.local/share/nautilus/scripts/Share with ShareScout').exists())
+            for path in ['.config/Thunar', '.local/share/kio', '.local/share/nemo', '.local/share/caja']:
+                self.assertFalse((home/path).exists(), path)
+
+    def test_unknown_manager_gets_application_fallback(self):
+        self.detect.return_value = []
+        with tempfile.TemporaryDirectory() as folder:
+            home = Path(folder); result = file_manager.install(home/'app', home, {})
+            self.assertEqual(result['detected'], [])
+            self.assertEqual(result['installed'], ['Application menu'])
+            self.assertFalse(result['errors'])
+            self.assertTrue((home/'.local/share/sharescout/share-folder').exists())
+
+    def test_newly_installed_manager_is_detected_on_next_run(self):
+        with tempfile.TemporaryDirectory() as folder:
+            home = Path(folder); self.detect.return_value = ['Nautilus']
+            file_manager.install(home/'app', home, {})
+            self.detect.return_value = ['Nautilus', 'Thunar']
+            result = file_manager.install(home/'app', home, {})
+            self.assertIn('Thunar', result['installed'])
+            self.assertTrue((home/'.config/Thunar/uca.xml').exists())
+
     def test_install_idempotent_preserves_thunar_actions_and_xdg_paths(self):
         with tempfile.TemporaryDirectory() as folder:
             home = Path(folder); data = home/'data'; config = home/'config'; app = home/'app with spaces'
