@@ -1,4 +1,4 @@
-# ShareScout 0.4.2 — find, pick, connect
+# ShareScout 0.4.3 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
 
@@ -29,6 +29,12 @@ Zorin/Ubuntu setup installs `libglib2.0-bin` for the `gio` command and `gvfs-bac
 Window title bars show the installed application version, including the sharing and discovery dialogs.
 
 After setup, open **ShareScout** from your application menu. No terminal is needed for network browsing or mapping. ShareScout allows one main session per user: launching it again requests that the existing window come forward. The OS releases the session lock after exit or a crash, so a stale lock file does not prevent restarting. Window activation uses an authenticated localhost connection; if activation fails, the second launch still does not start another session. Standalone file-manager sharing dialogs remain separate from the main session.
+
+## Check for updates
+
+Click **Check for updates** to compare the installed version with the version published in GitHub’s `main` branch. The check runs in the background with a network timeout; connection failures are shown and can be retried. The dialog shows update availability, upgrade commands for cloned repositories, and links to GitHub and the latest source ZIP. It does not execute downloaded code or automatically install updates.
+
+For a clone, close ShareScout, run `git pull --ff-only` inside the repository, then run `bash Launch-Linux.sh` on Linux or `Launch-Windows.cmd` on Windows to update the installed copy. ZIP users can extract the latest source ZIP and rerun the launcher. Debian-package users need an updated package, or can build it from the updated repository.
 
 ## Sharing check during setup
 
@@ -73,7 +79,7 @@ Integration formats follow the [Thunar custom-action documentation](https://docs
 
 All five windows have screen-aware sizes and a scrollable body. The main action buttons stay outside that scrolling area at the bottom. Toolbars wrap into multiple rows, discovery lists stack on narrow screens, tables have horizontal and vertical scrolling, and headings shrink on small displays. Keyboard focus scrolls form fields into view.
 
-The minimum display test target is **1280×720**. Current controlled rendering checks cover six windows, including folder sharing, at **1280×720 and 3840×2160**, each at **100%, 150%, and 200%** scaling. The 720p checks use simulated screen bounds on a 4K test display. Earlier releases also checked 640×480. Windows DPI awareness is enabled before Tk starts. Actual Windows display behavior still requires Windows-machine testing.
+The minimum display test target is **1280×720**. Current controlled rendering checks cover seven windows, including folder sharing, at **1280×720 and 3840×2160**, each at **100%, 150%, and 200%** scaling. The 720p checks use simulated screen bounds on a 4K test display. Earlier releases also checked 640×480. Windows DPI awareness is enabled before Tk starts. Actual Windows display behavior still requires Windows-machine testing.
 
 ## Everyday use
 
@@ -114,7 +120,7 @@ Use **Check setup** if tools are missing. Windows installer logs appear in the i
 
 ## Verification and implementation
 
-Run `python3 -m unittest discover -s tests`. Tests cover network detection, bounded scans, cancellation, share filtering, protected-server errors, encoded folder names, credential transport, and the choose-folder/save/connect/open flow. Tests use controlled discovery responses. Setup tests verify configuration preservation and backups, rejection of invalid configuration, existing-share repair, service/package choices, and scoped firewall commands. Current UI checks rendered 36 window layouts at the supported display test targets and verified bottom-button visibility and text width. Folder-sharing tests cover owned-path validation, configuration backups and preservation, duplicate names, staging failures, credential reuse, and CLI dispatch. Single-instance tests verify duplicate-launch blocking before Tk starts, authenticated window activation, stale metadata, and process-crash recovery. Windows locking still needs Windows-machine verification. File-manager tests check automatic detection, selective installation, fallback behavior, detection of newly added managers, action generation, existing Thunar actions, malformed configuration, repeated installation, XDG paths and literal argument transport. Actual context-menu visibility and remote folder access still require testing with the target file managers and devices. Live Samba provisioning, remote mapping, and Windows native API behavior still require target-machine testing. No real network scan or system Samba installation was run during development.
+Run `python3 -m unittest discover -s tests`. Tests cover network detection, bounded scans, cancellation, share filtering, protected-server errors, encoded folder names, credential transport, and the choose-folder/save/connect/open flow. Tests use controlled discovery responses. Setup tests verify configuration preservation and backups, rejection of invalid configuration, existing-share repair, service/package choices, and scoped firewall commands. Current UI checks rendered 42 window layouts at the supported display test targets and verified bottom-button visibility and text width. Folder-sharing tests cover owned-path validation, configuration backups and preservation, duplicate names, staging failures, credential reuse, and CLI dispatch. Single-instance tests verify duplicate-launch blocking before Tk starts, authenticated window activation, stale metadata, and process-crash recovery. Windows locking still needs Windows-machine verification. File-manager tests check automatic detection, selective installation, fallback behavior, detection of newly added managers, action generation, existing Thunar actions, malformed configuration, repeated installation, XDG paths and literal argument transport. Actual context-menu visibility and remote folder access still require testing with the target file managers and devices. Live Samba provisioning, remote mapping, and Windows native API behavior still require target-machine testing. No real network scan or system Samba installation was run during development.
 
 Linux share browsing uses [Samba smbclient](https://www.samba.org/samba/docs/current/man-html/smbclient.1.html) and mounting uses [GIO](https://docs.gtk.org/gio/method.File.mount_enclosing_volume.html). Windows uses the native [network share APIs](https://learn.microsoft.com/en-us/windows/win32/netshare/network-share-functions). Cloud mounts use [rclone](https://rclone.org/commands/rclone_mount/).
 
@@ -124,6 +130,6 @@ Sharing setup references: [Samba testparm](https://devel.samba.org/samba/docs/4.
 
 Clone this repository and run `python3 -m unittest discover -s tests` from its root. No pip dependencies are required for the test suite; Python must include Tk. Linux runtime mounting also requires PyGObject/GIO and the system tools installed by the launch script.
 
-To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.4.2_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
+To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.4.3_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
 
 The existing ResourceMapper settings directory and package identifier are retained for compatibility with earlier builds. The application is now named ShareScout.

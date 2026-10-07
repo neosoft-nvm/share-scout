@@ -99,7 +99,7 @@ class App:
         ui.label(main, text='We find sharing devices and folders for you. You just choose what to open.').pack(fill='x', pady=(8, 18))
         bar = ttk.Frame(main)
         bar.pack(fill='x', pady=(0, 12))
-        ui.buttons(bar, [('Find shared folders', self.find), ('Share a folder', self.share_folder), ('Cloud / manual connection', self.add), ('Cloud sign-in', self.sign_in), ('Check setup', self.check), ('Check sharing', lambda: self.sharing(force=True))] + ([] if WINDOWS else [('File-manager shortcuts', self.install_shortcuts)]), accent=('Find shared folders',), maximum=3)
+        ui.buttons(bar, [('Find shared folders', self.find), ('Share a folder', self.share_folder), ('Cloud / manual connection', self.add), ('Cloud sign-in', self.sign_in), ('Check setup', self.check), ('Check for updates', self.check_updates), ('Check sharing', lambda: self.sharing(force=True))] + ([] if WINDOWS else [('File-manager shortcuts', self.install_shortcuts)]), accent=('Find shared folders',), maximum=3)
         self.tree = ui.tree(main, columns=('kind', 'location', 'status', 'auto'), show='tree headings', selectmode='browse', height=8)
         self.tree.heading('#0', text='Name'); self.tree.column('#0', width=160)
         for key, label, width in [('kind', 'Type', 110), ('location', 'Location', 260), ('status', 'Status', 130), ('auto', 'On launch', 80)]:
@@ -113,6 +113,12 @@ class App:
         root.after(200, self.poll)
         root.after(400, self.startup)
         root.after(700, lambda: [self.operation(True, i) for i, item in enumerate(self.items) if item.get('auto')])
+
+    def check_updates(self):
+        if getattr(self, 'update_dialog', None) and self.update_dialog.window.winfo_exists():
+            self.update_dialog.window.lift(); return
+        from updates_ui import UpdateDialog
+        self.update_dialog = UpdateDialog(self.root)
 
     def share_folder(self):
         if WINDOWS:

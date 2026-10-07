@@ -1,6 +1,6 @@
 {
-  "automated_tests_passed": 70,
-  "rendered_layouts_passed": 36,
+  "automated_tests_passed": 76,
+  "rendered_layouts_passed": 42,
   "minimum_test_resolution": [
     1280,
     720
@@ -96,6 +96,20 @@
         1280,
         720
       ],
+      "scaling_percent": 100,
+      "window": "Check for updates",
+      "size": [
+        670,
+        540
+      ],
+      "footer_buttons": 4,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
       "scaling_percent": 150,
       "window": "Main",
       "size": [
@@ -180,6 +194,20 @@
         1280,
         720
       ],
+      "scaling_percent": 150,
+      "window": "Check for updates",
+      "size": [
+        1005,
+        620
+      ],
+      "footer_buttons": 4,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
       "scaling_percent": 200,
       "window": "Main",
       "size": [
@@ -257,6 +285,20 @@
         620
       ],
       "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        1280,
+        720
+      ],
+      "scaling_percent": 200,
+      "window": "Check for updates",
+      "size": [
+        1232,
+        620
+      ],
+      "footer_buttons": 4,
       "visible": true
     },
     {
@@ -348,6 +390,20 @@
         3840,
         2160
       ],
+      "scaling_percent": 100,
+      "window": "Check for updates",
+      "size": [
+        670,
+        540
+      ],
+      "footer_buttons": 4,
+      "visible": true
+    },
+    {
+      "screen": [
+        3840,
+        2160
+      ],
       "scaling_percent": 150,
       "window": "Main",
       "size": [
@@ -432,6 +488,20 @@
         3840,
         2160
       ],
+      "scaling_percent": 150,
+      "window": "Check for updates",
+      "size": [
+        1005,
+        810
+      ],
+      "footer_buttons": 4,
+      "visible": true
+    },
+    {
+      "screen": [
+        3840,
+        2160
+      ],
       "scaling_percent": 200,
       "window": "Main",
       "size": [
@@ -509,6 +579,20 @@
         1180
       ],
       "footer_buttons": 2,
+      "visible": true
+    },
+    {
+      "screen": [
+        3840,
+        2160
+      ],
+      "scaling_percent": 200,
+      "window": "Check for updates",
+      "size": [
+        1340,
+        1080
+      ],
+      "footer_buttons": 4,
       "visible": true
     }
   ]
