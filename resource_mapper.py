@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resource Mapper: native SMB connections and rclone cloud mounts."""
+"""ShareScout: native SMB connections and rclone cloud mounts."""
 import json
 import os
 from pathlib import Path

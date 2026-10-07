@@ -31,13 +31,13 @@ def archive(path, entries):
             tar.addfile(info, io.BytesIO(data))
 
 control = f'''Package: resource-mapper
-Version: 0.3.0
+Version: 0.3.1
 Section: net
 Priority: optional
 Architecture: all
-Maintainer: Resource Mapper <resource-mapper@localhost>
+Maintainer: ShareScout <resource-mapper@localhost>
 Installed-Size: {(sum(len(data) for data, mode in files.values()) + 1023) // 1024}
-Depends: python3 (>= 3.8), python3-tk, python3-gi, smbclient, iproute2, gvfs-backends, gvfs-bin, rclone, fuse3
+Depends: python3 (>= 3.8), python3-tk, python3-gi, smbclient, iproute2, gvfs-backends, libglib2.0-bin, rclone, fuse3
 Description: Find computers and connect shared folders
  Automatically discover local IPv4 SMB file servers and browse their shares.
  Select a shared folder to save, connect and open it. Includes rclone cloud mounts.
@@ -46,7 +46,7 @@ md5 = ''.join(hashlib.md5(data).hexdigest() + '  ' + name + '\n' for name, (data
 archive(build / 'control.tar.gz', {'control': (control.encode(), 0o644), 'md5sums': (md5.encode(), 0o644)})
 archive(build / 'data.tar.gz', files)
 (build / 'debian-binary').write_bytes(b'2.0\n')
-output = root / 'dist/resource-mapper_0.3.0_all.deb'
+output = root / 'dist/resource-mapper_0.3.1_all.deb'
 output.parent.mkdir(parents=True, exist_ok=True)
 if output.exists(): output.unlink()
 subprocess.run(['ar', 'rcD', str(output), 'debian-binary', 'control.tar.gz', 'data.tar.gz'], cwd=build, check=True)

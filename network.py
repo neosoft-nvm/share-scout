@@ -172,7 +172,7 @@ def win_shares(address, credentials=None):
 def list_shares(address, credentials=None):
     address = validate_ip(address)
     if WINDOWS: return win_shares(address, credentials)
-    if not shutil.which('smbclient'): raise RuntimeError('Network browsing needs smbclient. Reopen Start Resource Mapper to finish setup.')
+    if not shutil.which('smbclient'): raise RuntimeError('Network browsing needs smbclient. Run ShareScout’s Launch-Linux.sh to finish setup.')
     args = ['smbclient', '-g', '-L', address, '-I', address, '-t', '10']
     env = os.environ.copy()
     for key in ('PASSWD', 'PASSWD_FD', 'PASSWD_FILE'): env.pop(key, None)
