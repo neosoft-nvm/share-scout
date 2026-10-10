@@ -213,3 +213,40 @@ def apply_theme(root):
     style.configure('TCheckbutton', background=bg_color, foreground=text_dark)
     style.map('TCheckbutton', background=[('active', bg_color)])
     style.configure('TEntry', fieldbackground='white', foreground=text_dark)
+
+
+def action_card(parent, icon, title, subtitle, callback, accent=False):
+    bg_norm = '#ffffff'
+    border_norm = '#c7d2fe' if accent else '#e2e8f0'
+    bg_hover = '#f8fafc'
+    border_hover = '#4f46e5'
+    card = tk.Frame(parent, bg=bg_norm, highlightbackground=border_norm, highlightthickness=1, padx=14, pady=12, cursor='hand2')
+    icon_bg = '#e0e7ff' if accent else '#f1f5f9'
+    icon_fg = '#4338ca' if accent else '#334155'
+    icon_lbl = tk.Label(card, text=icon, font=('', 18), bg=icon_bg, fg=icon_fg, width=3, height=1, relief='flat')
+    icon_lbl.pack(pady=(0, 6))
+    title_lbl = tk.Label(card, text=title, font=('', 11, 'bold'), bg=bg_norm, fg='#1e1b4b' if accent else '#0f172a')
+    title_lbl.pack()
+    sub_lbl = tk.Label(card, text=subtitle, font=('', 9), bg=bg_norm, fg='#64748b')
+    sub_lbl.pack(pady=(2, 0))
+
+    def on_enter(_):
+        card.configure(bg=bg_hover, highlightbackground=border_hover)
+        title_lbl.configure(bg=bg_hover)
+        sub_lbl.configure(bg=bg_hover)
+
+    def on_leave(_):
+        card.configure(bg=bg_norm, highlightbackground=border_norm)
+        title_lbl.configure(bg=bg_norm)
+        sub_lbl.configure(bg=bg_norm)
+
+    def on_click(_):
+        callback()
+
+    for w in (card, icon_lbl, title_lbl, sub_lbl):
+        w.bind('<Enter>', on_enter)
+        w.bind('<Leave>', on_leave)
+        w.bind('<Button-1>', on_click)
+
+    return card
+

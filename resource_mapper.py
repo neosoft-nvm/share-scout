@@ -93,30 +93,61 @@ class App:
         ui.set_app_icon(root)
         style = ttk.Style()
         ui.apply_theme(root)
-        layout = ui.Layout(root, 940, 580)
+        layout = ui.Layout(root, 940, 600)
         main = layout.body
-        ui.label(main, text='A home for all your folders', font=ui.heading_font(root), style='Hero.TLabel').pack(fill='x')
-        ui.label(main, text='Find it. Connect it. Make yourself at home.', style='Subtitle.TLabel').pack(fill='x', pady=(6, 14))
-        bar = ttk.Frame(main); bar.pack(fill='x', pady=(0, 14))
-        ui.buttons(bar, [('Find network folders', self.find), ('Connect cloud storage', self.sign_in),
-                         ('Share a folder from this PC', self.share_folder)],
-                   accent=('Find network folders', 'Connect cloud storage'), maximum=3, hero=True)
-        ui.label(main, text='Saved & Connected Folders', font=('', 13, 'bold'), style='Section.TLabel').pack(fill='x', pady=(10, 4))
+
+        # App header branding
+        header = tk.Frame(main, bg='#f8fafc')
+        header.pack(fill='x', pady=(0, 6))
+        try:
+            self._icon_thumb = tk.PhotoImage(file=str(Path(__file__).with_name('sharescout.png'))).subsample(4, 4)
+            tk.Label(header, image=self._icon_thumb, bg='#f8fafc').pack(side='left', padx=(0, 8))
+        except Exception:
+            pass
+        title_box = tk.Frame(header, bg='#f8fafc')
+        title_box.pack(side='left', fill='y')
+        tk.Label(title_box, text='ShareScout', font=('', 16, 'bold'), fg='#1e1b4b', bg='#f8fafc').pack(side='left')
+        tk.Label(title_box, text=' 0.6.0', font=('', 9, 'bold'), fg='#4f46e5', bg='#e0e7ff', padx=6, pady=2).pack(side='left', padx=(8, 0))
+
+        ui.label(main, text='Find it. Connect it. Make yourself at home.', style='Subtitle.TLabel').pack(fill='x', pady=(2, 12))
+
+        # Hero Action Cards
+        cards_bar = tk.Frame(main, bg='#f8fafc')
+        cards_bar.pack(fill='x', pady=(0, 14))
+        for col in range(3):
+            cards_bar.columnconfigure(col, weight=1)
+        c1 = ui.action_card(cards_bar, '📡', 'Find Network Folders', 'Scan nearby PCs & NAS devices', self.find, accent=True)
+        c1.grid(row=0, column=0, sticky='nsew', padx=(0, 6))
+        c2 = ui.action_card(cards_bar, '☁', 'Connect Cloud Storage', 'Google Drive & OneDrive', self.sign_in, accent=False)
+        c2.grid(row=0, column=1, sticky='nsew', padx=(3, 3))
+        c3 = ui.action_card(cards_bar, '📁', 'Share Local Folder', 'Share files from this PC', self.share_folder, accent=False)
+        c3.grid(row=0, column=2, sticky='nsew', padx=(6, 0))
+
+        # Saved & Connected Folders Section Header
+        table_hdr = tk.Frame(main, bg='#f8fafc')
+        table_hdr.pack(fill='x', pady=(6, 4))
+        tk.Label(table_hdr, text='Saved & Connected Folders', font=('', 13, 'bold'), fg='#0f172a', bg='#f8fafc').pack(side='left')
         self.summary = tk.StringVar()
-        ui.label(main, textvariable=self.summary, style='Muted.TLabel').pack(fill='x', pady=(0, 8))
-        self.tree = ui.tree(main, columns=('kind', 'location', 'status', 'auto'), show='tree headings', selectmode='browse', height=8)
+        tk.Label(table_hdr, textvariable=self.summary, font=('', 9), fg='#64748b', bg='#f8fafc').pack(side='right')
+
+        # Treeview in White Card Frame
+        table_card = tk.Frame(main, bg='white', highlightbackground='#e2e8f0', highlightthickness=1)
+        table_card.pack(fill='both', expand=True, pady=(0, 8))
+        self.tree = ui.tree(table_card, columns=('kind', 'location', 'status', 'auto'), show='tree headings', selectmode='browse', height=8)
         self.tree.heading('#0', text='Folder Name'); self.tree.column('#0', width=180)
         for key, label, width in [('kind', 'Type', 110), ('location', 'Location or Path', 270), ('status', 'Status', 120), ('auto', 'On launch', 80)]:
             self.tree.heading(key, text=label); self.tree.column(key, width=width)
         self.tree.bind('<Double-1>', lambda _: self.open())
         ui.buttons(layout.footer, [('Open folder', self.open), ('Connect', lambda: self.operation(True)), ('Disconnect', lambda: self.operation(False)), ('Forget folder', self.remove)], accent=('Open folder',), maximum=4)
-        tools = ttk.LabelFrame(main, text='More ways to connect & help', padding=6); tools.pack(fill='x', pady=10)
+
+        # Secondary tools
+        tools = ttk.LabelFrame(main, text='More ways to connect & tools', padding=6); tools.pack(fill='x', pady=(0, 8))
         ui.buttons(tools, [('Add network address', self.add), ('Refresh connected folders', self.sync_connections),
                           ('Check required tools', self.check), ('Check for updates', self.check_updates),
                           ('Help sharing from this PC', lambda: self.sharing(force=True))] +
                    ([] if WINDOWS else [('File-manager shortcuts', self.install_shortcuts)]), maximum=3)
-        self.note = tk.StringVar(value='Choose a folder below and click Open folder. Add your first folder using the buttons above.')
-        ui.label(main, textvariable=self.note, wraplength=850).pack(fill='x')
+        self.note = tk.StringVar(value='Choose a folder above and click Open folder. Add your first folder using the action cards above.')
+        ui.label(main, textvariable=self.note, wraplength=850, style='Muted.TLabel').pack(fill='x')
         self.refresh()
         root.protocol('WM_DELETE_WINDOW', self.close)
         root.after(200, self.poll)
@@ -227,13 +258,15 @@ class App:
         selected = self.tree.selection()
         self.tree.delete(*self.tree.get_children())
         for i, item in enumerate(self.items):
-            self.tree.insert('', 'end', iid=str(i), text=item['name'], values=(item['kind'], item['target'] or item['source'], item.get('status', 'Disconnected'), 'Yes' if item.get('auto') else 'No'))
+            status = item.get('status', 'Disconnected')
+            display_status = f'● {status}' if status == 'Connected' else (f'◌ {status}' if 'Connect' in status else f'○ {status}')
+            self.tree.insert('', 'end', iid=str(i), text=item['name'], values=(item['kind'], item['target'] or item['source'], display_status, 'Yes' if item.get('auto') else 'No'))
         if selected and self.tree.exists(selected[0]): self.tree.selection_set(selected)
         count = sum(item.get('status') == 'Connected' for item in self.items)
         if hasattr(self, 'summary'):
-            self.summary.set(f'{count} connected · {len(self.items)} saved — select a folder, then Open folder.' if self.items else 'No folders yet. Find a network folder or connect your cloud to get started.')
-        self.tree.tag_configure('connected', foreground='#15803d')
-        self.tree.tag_configure('connecting', foreground='#0284c7')
+            self.summary.set(f'{count} connected · {len(self.items)} saved' if self.items else 'No folders yet')
+        self.tree.tag_configure('connected', foreground='#15803d', font=('', 10, 'bold'))
+        self.tree.tag_configure('connecting', foreground='#0284c7', font=('', 10, 'italic'))
         self.tree.tag_configure('disconnected', foreground='#64748b')
         for i, item in enumerate(self.items):
             status = item.get('status', 'Disconnected')
