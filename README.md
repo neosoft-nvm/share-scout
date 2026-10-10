@@ -32,7 +32,7 @@ After setup, open **ShareScout** from your application menu. No terminal is need
 
 ## Check for updates
 
-Click **Check for updates** to compare the installed version with the version published in GitHub’s `main` branch. The check runs in the background with a network timeout; connection failures are shown and can be retried. The dialog shows update availability, upgrade commands for cloned repositories, and links to GitHub and the latest source ZIP. It does not execute downloaded code or automatically install updates.
+ShareScout checks for a newer version in the background when it opens. If one is available, it asks whether you want to see the upgrade options. Check **Don’t check for updates automatically** in that prompt to turn off launch checks; you can still use **Check for updates** at any time. Offline checks stay quiet. The upgrade window links directly to the latest source ZIP and shows the short steps for cloned, ZIP, and Debian package installs. ShareScout never installs downloaded code without your choice.
 
 For a clone, close ShareScout, run `git pull --ff-only` inside the repository, then run `bash Launch-Linux.sh` on Linux or `Launch-Windows.cmd` on Windows to update the installed copy. ZIP users can extract the latest source ZIP and rerun the launcher. Debian-package users need an updated package, or can build it from the updated repository.
 

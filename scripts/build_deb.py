@@ -14,8 +14,11 @@ build.mkdir(parents=True, exist_ok=True)
 files = {}
 for path in sorted(source.glob('*.py')):
     files['usr/share/resource-mapper/' + path.name] = (path.read_bytes(), 0o644)
+files['usr/share/icons/hicolor/128x128/apps/sharescout.png'] = ((source / 'sharescout.png').read_bytes(), 0o644)
+files['usr/share/icons/hicolor/scalable/apps/sharescout.svg'] = ((source / 'sharescout.svg').read_bytes(), 0o644)
+files['usr/share/resource-mapper/sharescout.png'] = ((source / 'sharescout.png').read_bytes(), 0o644)
 files['usr/bin/resource-mapper'] = (b'#!/bin/sh\nexec /usr/bin/python3 /usr/share/resource-mapper/resource_mapper.py "$@"\n', 0o755)
-files['usr/share/applications/resource-mapper.desktop'] = (b'[Desktop Entry]\nType=Application\nName=ShareScout\nComment=Find computers and connect shared folders\nExec=resource-mapper\nIcon=folder-remote\nTerminal=false\nCategories=Network;FileManager;\n', 0o644)
+files['usr/share/applications/resource-mapper.desktop'] = (b'[Desktop Entry]\nType=Application\nName=ShareScout\nComment=Find computers and connect shared folders\nExec=resource-mapper\nIcon=sharescout\nTerminal=false\nCategories=Network;FileManager;\n', 0o644)
 for document in ('README.md', 'ROADMAP.md'):
     files['usr/share/doc/resource-mapper/' + document] = (source.joinpath(document).read_bytes(), 0o644)
 

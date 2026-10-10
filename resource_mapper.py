@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 WINDOWS = os.name == 'nt'
 STATE = Path(os.getenv('LOCALAPPDATA', str(Path.home() / '.config'))) / 'ResourceMapper'
 CONFIG = STATE / 'connections.json'
+UPDATE_PREF = STATE / 'update-check.json'
 
 
 def run(args, timeout=30):
@@ -88,6 +89,11 @@ class App:
         for item in self.items:
             item['status'] = 'Disconnected'
         root.title(window_title())
+        try:
+            self.app_icon = tk.PhotoImage(file=str(Path(__file__).with_name('sharescout.png')))
+            root.iconphoto(True, self.app_icon)
+        except tk.TclError:
+            self.app_icon = None
         style = ttk.Style()
         style.theme_use('clam')
         ui.apply_theme(root)
@@ -123,6 +129,7 @@ class App:
         root.protocol('WM_DELETE_WINDOW', self.close)
         root.after(200, self.poll)
         root.after(400, self.startup)
+        root.after(1200, self.check_startup_update)
         root.after(700, lambda: [self.operation(True, i) for i, item in enumerate(self.items) if item.get('auto')])
 
     def check_updates(self):
@@ -130,6 +137,25 @@ class App:
             self.update_dialog.window.lift(); return
         from updates_ui import UpdateDialog
         self.update_dialog = UpdateDialog(self.root)
+
+    def check_startup_update(self):
+        try:
+            enabled = json.loads(UPDATE_PREF.read_text()).get('automatic', True)
+        except (OSError, ValueError, AttributeError):
+            enabled = True
+        if not enabled:
+            return
+        def worker():
+            try: self.events.put(('update-check', updates.check(), None))
+            except Exception: self.events.put(('update-check', None, None))
+        import updates
+        threading.Thread(target=worker, daemon=True).start()
+
+    def offer_update(self, result):
+        if getattr(self, 'update_prompt', None) and self.update_prompt.winfo_exists():
+            return
+        from updates_ui import UpdatePrompt
+        self.update_prompt = UpdatePrompt(self.root, result)
 
     def share_folder(self):
         if WINDOWS:
@@ -328,6 +354,9 @@ class App:
     def poll(self):
         while not self.events.empty():
             i, status, error = self.events.get()
+            if i == 'update-check':
+                if status and status.get('newer'): self.offer_update(status)
+                continue
             if i == 'desktop':
                 self.syncing = False
                 for incoming in status:

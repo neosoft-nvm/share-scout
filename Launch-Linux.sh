@@ -24,9 +24,12 @@ fi
 app_dir="$HOME/.local/share/ResourceMapper"
 mkdir -p "$app_dir" "$HOME/.local/share/applications"
 if [[ "$PWD" != "$app_dir" ]]; then
-  cp -- ./*.py ./Launch-Linux.sh ./Start-Resource-Mapper "$app_dir/"
+  cp -- ./*.py ./Launch-Linux.sh ./Start-Resource-Mapper ./sharescout.png ./sharescout.svg "$app_dir/"
   chmod +x "$app_dir/Launch-Linux.sh" "$app_dir/Start-Resource-Mapper"
 fi
+icon_dir="$HOME/.local/share/icons/hicolor/128x128/apps"
+mkdir -p "$icon_dir"
+cp -- "$app_dir/sharescout.png" "$icon_dir/sharescout.png"
 python3 - "$app_dir" <<'PY'
 from pathlib import Path
 import sys
@@ -36,7 +39,7 @@ value = str(location / 'Start-Resource-Mapper')
 for char in ['\\', '"', '`', '$']:
     value = value.replace(char, '\\' + char)
 value = value.replace('%', '%%')
-entry = '[Desktop Entry]\nType=Application\nName=ShareScout\nComment=Find and connect shared folders\nExec="' + value + '"\nIcon=folder-remote\nTerminal=false\nCategories=Network;FileManager;\n'
+entry = '[Desktop Entry]\nType=Application\nName=ShareScout\nComment=Find and connect shared folders\nExec="' + value + '"\nIcon=sharescout\nTerminal=false\nCategories=Network;FileManager;\n'
 (Path.home() / '.local/share/applications/resource-mapper.desktop').write_text(entry)
 PY
 python3 "$app_dir/file_manager.py" "$app_dir"

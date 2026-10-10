@@ -17,6 +17,7 @@ try {
     if ($PSScriptRoot -ne $appDir) {
         Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.py' | Copy-Item -Destination $appDir -Force
         Copy-Item -LiteralPath "$PSScriptRoot\Launch-Windows.cmd", "$PSScriptRoot\Setup-Windows.ps1" -Destination $appDir -Force
+        Copy-Item -LiteralPath "$PSScriptRoot\sharescout.png", "$PSScriptRoot\sharescout.ico", "$PSScriptRoot\sharescout.svg" -Destination $appDir -Force
     }
     $pythonArgs = ''
     if (Get-Command py -ErrorAction SilentlyContinue) {
@@ -32,6 +33,7 @@ try {
     $shortcut.Arguments = $pythonArgs + '"' + $appDir + '\resource_mapper.py"'
     $shortcut.WorkingDirectory = $appDir
     $shortcut.Description = 'Find computers and connect shared folders'
+    $shortcut.IconLocation = "$appDir\sharescout.ico"
     $shortcut.Save()
     Start-Process -FilePath $pythonGui -ArgumentList $shortcut.Arguments -WorkingDirectory $appDir
     exit 0
