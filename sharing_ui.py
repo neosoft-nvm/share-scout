@@ -38,7 +38,8 @@ class SharingSetup:
         ui.label(frame, textvariable=self.status).pack(fill='x', pady=12)
         ui.label(frame, text='If no shared folders are configured, setup can install Samba and create a password-protected folder called “Shared with ShareScout”. Existing shared folders are kept.').pack(fill='x', pady=8)
         ui.label(frame, text='Setup will ask for administrator approval and, for a new folder, a sharing password. It permits SMB connections from your current local IPv4 network. Run this on your home Wi-Fi or Ethernet connection.').pack(fill='x', pady=8)
-        self.widgets = ui.buttons(layout.footer, [('Not now', self.skip), ('Recheck', self.check), ('Set up sharing', self.install)], accent=('Set up sharing',), maximum=3)
+        ui.label(frame, text='Check sharing again only checks the current status. Set up sharing installs missing tools and starts folder sharing. Restart sharing & allow local access restarts the sharing service and updates supported firewall rules for your local network.').pack(fill='x', pady=8)
+        self.widgets = ui.buttons(layout.footer, [('Not now', self.skip), ('Check sharing again', self.check), ('Set up sharing', self.install)], accent=('Set up sharing',), maximum=3)
         self.install_button = self.widgets[2]; self.install_button.configure(state='disabled')
         self.window.after(100, self.poll); self.check()
 
@@ -87,7 +88,7 @@ class SharingSetup:
                 if result['ready'] and not self.force:
                     self.record('existing'); self.close(); return
                 self.install_button.configure(state='disabled' if result['error'] else 'normal')
-                if result['ready']: self.install_button.configure(text='Repair network access')
+                self.install_button.configure(text='Restart sharing & allow local access' if result['ready'] else 'Set up sharing')
         if self.result_file and self.result_file.exists():
             try: result = json.loads(self.result_file.read_text())
             except (OSError, ValueError): result = None

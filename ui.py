@@ -50,7 +50,7 @@ class Layout:
         window._sharescout_layout = self
         outer = ttk.Frame(window, padding=14); outer.pack(fill='both', expand=True)
         outer.columnconfigure(0, weight=1); outer.rowconfigure(0, weight=1)
-        self.canvas = tk.Canvas(outer, highlightthickness=0, borderwidth=0)
+        self.canvas = tk.Canvas(outer, highlightthickness=0, borderwidth=0, background='#f3f6fb')
         scroll = ttk.Scrollbar(outer, orient='vertical', command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=scroll.set)
         self.canvas.grid(row=0, column=0, sticky='nsew'); scroll.grid(row=0, column=1, sticky='ns')
@@ -146,3 +146,17 @@ def tree(parent, **kwargs):
     horizontal = ttk.Scrollbar(frame, orient='horizontal', command=widget.xview); horizontal.grid(row=1, column=0, sticky='ew')
     widget.configure(yscrollcommand=vertical.set, xscrollcommand=horizontal.set)
     return widget
+
+
+def apply_theme(root):
+    style = ttk.Style(root)
+    style.configure('TFrame', background='#f3f6fb')
+    style.configure('TLabel', background='#f3f6fb', foreground='#24324b')
+    style.configure('TLabelframe', background='#f3f6fb')
+    style.configure('TLabelframe.Label', background='#f3f6fb', foreground='#475569')
+    style.configure('Hero.TLabel', foreground='#4338ca')
+    style.configure('Subtitle.TLabel', foreground='#64748b')
+    style.configure('Horizontal.TProgressbar', background='#0d9488', troughcolor='#dbe4f0',
+                    bordercolor='#dbe4f0', lightcolor='#14b8a6', darkcolor='#0f766e')
+    style.configure('Treeview', background='white', fieldbackground='white', foreground='#24324b')
+    style.map('Treeview', background=[('selected', '#4338ca')], foreground=[('selected', 'white')])

@@ -1,6 +1,6 @@
 """Shared application identity for window titles and packages."""
 NAME = 'ShareScout'
-VERSION = '0.4.3'
+VERSION = '0.5.0'
 
 
 def window_title(detail=None):

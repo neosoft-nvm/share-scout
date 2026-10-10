@@ -1,4 +1,4 @@
-# ShareScout 0.4.3 — find, pick, connect
+# ShareScout 0.5.0 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
 
@@ -9,7 +9,7 @@ Discover and connect shared resources across PCs, network storage, and cloud ser
 | Run ShareScout | Linux and Windows PCs, including desktops and laptops |
 | Find and connect network folders | Devices offering compatible SMB file sharing, including PCs, NAS devices, and file servers |
 | Connect cloud storage | OneDrive and Google Drive through rclone |
-| Offer local sharing setup | Linux PCs through Samba, including chosen folders; Windows opens its shared-folder wizard |
+| Offer local sharing setup | Linux PCs through Samba, including chosen folders; Windows requests administrator approval for its shared-folder wizard |
 | Android | Future target; no Android app or installer is available yet |
 
 The goal is a simple **scan → choose a device → choose a folder → connect** experience. Device type should not determine whether a compatible shared folder can be discovered. See [the roadmap](ROADMAP.md) for the planned Android scope.
@@ -38,7 +38,7 @@ For a clone, close ShareScout, run `git pull --ff-only` inside the repository, t
 
 ## Sharing check during setup
 
-Setup checks the **local Linux computer** for a Samba server, configured file shares (including file-manager usershares), and an IPv4 listener on port 445. If sharing is already configured and listening, normal first-run startup keeps it. You can inspect or repair it with **Check sharing**.
+Setup checks the **local Linux computer** for a Samba server, configured file shares (including file-manager usershares), and an IPv4 listener on port 445. If sharing is already configured and listening, normal first-run startup keeps it. You can inspect or repair it with **Help sharing from this PC**.
 
 If sharing is missing, setup offers **Set up sharing**. Accepting opens a setup terminal for the operating system’s administrator prompt and the sharing-password prompt. It installs Samba when missing and starts the correct service for Fedora or Zorin/Ubuntu. Declining leaves local sharing settings untouched.
 
@@ -54,9 +54,9 @@ On Linux, click **Share a folder**, then **Choose folder…** or **Create a new 
 
 Setup installs Samba if needed, keeps existing shares, validates and backs up the configuration, and configures supported local-network firewall access. Sign in from another device using your Linux username and sharing password. An existing Samba password is retained; a missing account gets a password prompt in the setup terminal. The completion dialog shows the IP address, share name and sign-in account. Scan from another device to verify access.
 
-Choose an owned folder inside your home, `/srv/share-scout`, or a mounted drive under `/media`, `/mnt` or `/run/media`. Sharing your entire home, hidden settings folders, system folders, symbolic-link paths, or names containing `%` or line breaks is not supported. Original Unix ownership and permissions are preserved. On SELinux systems, home-folder sharing explicitly asks before enabling the system-wide `samba_enable_home_dirs` policy if needed; other chosen folders are labeled for Samba. SELinux stays enabled. If later setup steps fail, the error is shown; already completed configuration changes may remain and can be repaired with **Check sharing**.
+Choose an owned folder inside your home, `/srv/share-scout`, or a mounted drive under `/media`, `/mnt` or `/run/media`. Sharing your entire home, hidden settings folders, system folders, symbolic-link paths, or names containing `%` or line breaks is not supported. Original Unix ownership and permissions are preserved. On SELinux systems, home-folder sharing explicitly asks before enabling the system-wide `samba_enable_home_dirs` policy if needed; other chosen folders are labeled for Samba. SELinux stays enabled. If later setup steps fail, the error is shown; already completed configuration changes may remain and can be repaired with **Help sharing from this PC**.
 
-On Windows, **Share a folder** opens the operating system’s shared-folder wizard. The Linux file-manager integrations below are not installed on Windows.
+On Windows, **Share a folder from this PC** requests Windows administrator approval and opens the operating system’s shared-folder wizard. Approve the Windows prompt to choose a local folder and access permissions. Only the wizard is elevated; ordinary connections run in your desktop session. If approval is declined, ShareScout explains how to retry. Connecting to another computer’s folder uses **Find network folders** and normally needs no administrator rights. The Linux file-manager integrations below are not installed on Windows.
 
 ## Right-click sharing in Linux file managers
 
@@ -94,6 +94,16 @@ Windows chooses an unused drive letter automatically. Linux mounts through GVfs;
 
 Next time you open ShareScout, remembered connections reconnect. Passwords are kept only in memory by this app, so a protected device may ask you to sign in again. Windows may reuse its existing operating-system SMB session. Reconnect is on app launch, not a login service.
 
+## Your folders on the home screen
+
+The home screen lists saved folders, connection status, and locations. **Open folder** opens a connected folder; for a disconnected saved folder, it connects first and opens when ready. **Refresh connected folders** also brings existing Windows mapped network drives and Linux desktop SMB mounts into the list, including those connected outside ShareScout. The status reflects completed connection operations and the most recent desktop refresh; it is not continuous server availability monitoring.
+
+**Add network address** is for users who already know a full address such as `\\server\photos` or `smb://server/photos`. The dialog explains the format, chooses the drive letter automatically, and connects after saving. If you only know an IP address, use **Find network folders**.
+
+**Help sharing from this PC** explains how to make this computer’s folders available to others. On Linux, **Check sharing again** only checks the current status. **Set up sharing** installs missing tools and enables sharing. **Restart sharing & allow local access** restarts the sharing service and updates supported firewall rules for the current local network; it requests administrator approval in the setup terminal. These are local sharing actions, not cloud connection repairs.
+
+The refreshed interface uses indigo headings and teal progress bars over a pale background. Primary connection actions and the selected-folder controls stay easy to find, and forms retain scrolling on small displays.
+
 ## If a device is missing
 
 Enter its **IPv4 address** and click **Show its folders**. You still do not need a hostname or share name.
@@ -104,11 +114,9 @@ Typical home networks finish quickly. On large networks, discovery limits each i
 
 ## OneDrive and Google Drive
 
-Cloud connections are retained. They use rclone and require a one-time account setup:
+Click **Connect cloud storage**, choose Google Drive or OneDrive, then **Sign in with browser**. Google or Microsoft sign-in opens in your browser; account and drive choices appear inside ShareScout. No setup terminal or manually typed rclone remote name is needed. When sign-in completes, ShareScout saves the connection, chooses an available drive letter (Windows) or dedicated mount folder (Linux), connects and opens your files.
 
-1. Click **Cloud sign-in**. In the rclone wizard, choose **New remote**, name it, select OneDrive or Google Drive, and finish browser sign-in.
-2. Click **Cloud / manual connection**, choose the provider, and enter that remote name.
-3. Choose an unused Windows drive letter or an empty Linux mount folder, save, and connect.
+Already configured accounts appear in the same dialog: select one and click **Connect saved account**. Existing accounts are kept. New sign-ins use unique account names so they cannot overwrite another account. Cancel stops sign-in and removes the unfinished account created by that dialog. Browser sign-in times out after five minutes and can be retried. Cloud account setup uses rclone’s [application configuration protocol](https://rclone.org/commands/rclone_config_create/); use a current rclone version supporting `--non-interactive`.
 
 Cloud drives remain mounted while the app is open. Disconnect cloud drives before closing and allow pending uploads to finish. This utility mounts cloud storage; it is not an offline backup client. Windows cloud mounts require WinFsp, Linux cloud mounts require FUSE. The setup scripts install these dependencies.
 
@@ -116,7 +124,7 @@ Cloud drives remain mounted while the app is open. Disconnect cloud drives befor
 
 Connection names and locations are stored in `%LOCALAPPDATA%\ResourceMapper` on Windows or `~/.config/ResourceMapper` on Linux. ShareScout does not save network passwords or put them in command arguments. Linux browsing passes a password only to the child process environment; Linux mounting passes credentials through stdin. Cloud OAuth tokens are managed by rclone’s configuration.
 
-Use **Check setup** if tools are missing. Windows installer logs appear in the initial setup terminal. Cloud logs are in the settings directory. Cloud cache size is a soft 2 GB limit; open files can exceed it.
+Use **Check required tools** if tools are missing. Windows installer logs appear in the initial setup terminal. Cloud logs are in the settings directory. Cloud cache size is a soft 2 GB limit; open files can exceed it.
 
 ## Verification and implementation
 
@@ -130,6 +138,6 @@ Sharing setup references: [Samba testparm](https://devel.samba.org/samba/docs/4.
 
 Clone this repository and run `python3 -m unittest discover -s tests` from its root. No pip dependencies are required for the test suite; Python must include Tk. Linux runtime mounting also requires PyGObject/GIO and the system tools installed by the launch script.
 
-To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.4.3_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
+To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.5.0_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
 
 The existing ResourceMapper settings directory and package identifier are retained for compatibility with earlier builds. The application is now named ShareScout.

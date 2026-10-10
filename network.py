@@ -192,3 +192,42 @@ def mount_share(source, target, credentials=None):
     if not response.get('ok'):
         if response.get('auth'): raise PermissionError('Sign in to open this shared folder.')
         raise RuntimeError(response.get('error', 'Could not connect.'))
+
+
+def win_share_folder():
+    """Elevate only Windows' sharing wizard, never the mapping session."""
+    from ctypes import wintypes as w
+    api = ctypes.WinDLL('shell32', use_last_error=True)
+    api.ShellExecuteW.argtypes = [w.HWND, w.LPCWSTR, w.LPCWSTR, w.LPCWSTR, w.LPCWSTR, ctypes.c_int]
+    api.ShellExecuteW.restype = ctypes.c_void_p
+    wizard = str(Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32' / 'shrpubw.exe')
+    result = api.ShellExecuteW(None, 'runas', wizard, None, None, 1)
+    if not result or result <= 32:
+        raise RuntimeError('Windows did not open the sharing wizard. Administrator approval is needed '
+                           'to share a folder from this PC. You can try again and approve the Windows prompt.')
+
+
+def connected_folders():
+    """Read existing desktop mounts without changing them or needing elevation."""
+    if WINDOWS:
+        from ctypes import wintypes as w
+        api = ctypes.WinDLL('mpr')
+        api.WNetGetConnectionW.argtypes = [w.LPCWSTR, w.LPWSTR, ctypes.POINTER(w.DWORD)]
+        api.WNetGetConnectionW.restype = w.DWORD
+        items = []
+        for letter in 'DEFGHIJKLMNOPQRSTUVWXYZ':
+            buffer = ctypes.create_unicode_buffer(32768); size = w.DWORD(32768)
+            target = letter + ':'
+            if api.WNetGetConnectionW(target, buffer, ctypes.byref(size)) == 0:
+                source = buffer.value
+                items.append({'name': source.rsplit('\\', 1)[-1] or target, 'kind': 'Network share',
+                              'source': source, 'target': target, 'status': 'Connected', 'auto': False})
+        return items
+    if not shutil.which('gio'): return []
+    import re
+    output = command(['gio', 'mount', '-l'])
+    sources = re.findall(r'^\s*Mount\([^\n]*? -> (smb://[^\r\n]+)', output, re.MULTILINE)
+    from urllib.parse import unquote, urlsplit
+    return [{'name': unquote(urlsplit(source).path.rstrip('/').split('/')[-1]),
+             'kind': 'Network share', 'source': source, 'target': '', 'status': 'Connected', 'auto': False}
+            for source in sources]
