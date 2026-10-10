@@ -4,6 +4,7 @@ import threading
 import tkinter as tk
 from tkinter import ttk, messagebox
 import network
+import credentials as credential_store
 import ui
 from app_info import window_title
 
@@ -22,12 +23,14 @@ def ask_credentials(parent, address, callback):
         field = ttk.Entry(frame, textvariable=var, show='•' if key == 'password' else '')
         field.pack(fill='x')
         if key == 'username': field.focus_set()
-    ui.label(frame, text='Your password is not saved by ShareScout.').pack(fill='x', pady=8)
+    remember = tk.BooleanVar(value=False)
+    ttk.Checkbutton(frame, text='Remember this password in the system password store', variable=remember).pack(anchor='w', pady=(6, 2))
+    ui.label(frame, text='Leave unchecked to use it for this session only.').pack(fill='x', pady=4)
     def submit():
         if not values['username'].get().strip():
             messagebox.showinfo('Username', 'Enter your username.', parent=dialog); return
         credentials = {key: var.get().strip() if key != 'password' else var.get() for key, var in values.items()}
-        dialog.destroy(); callback(credentials)
+        dialog.destroy(); callback(credentials, remember.get())
     ui.buttons(layout.footer, [('Cancel', dialog.destroy), ('Sign in', submit)], accent=('Sign in',), maximum=2)
     dialog.bind('<Return>', lambda _: submit())
 
@@ -82,8 +85,11 @@ class Finder:
         footer = layout.footer
         self.auto = tk.BooleanVar(value=True)
         ttk.Checkbutton(footer, text='Reconnect when this app opens', variable=self.auto).pack(fill='x', pady=(0, 8))
-        self.connect_button = ttk.Button(footer, text='Connect this folder', style='Accent.TButton', state='disabled', command=self.connect)
-        self.connect_button.pack(fill='x')
+        self.connect_button = ui.buttons(
+            footer, [('Cancel', self.close), ('Connect this folder', self.connect)],
+            accent=('Connect this folder',), maximum=2
+        )[1]
+        self.connect_button.configure(state='disabled')
         self.window.after(100, self.poll)
         self.window.after(200, self.start_scan)
 
@@ -127,6 +133,9 @@ class Finder:
         self.connect_button.configure(state='disabled')
         self.status.set(f'Looking for shared folders on {address}…')
         credentials = self.app.credentials.get(address)
+        if credentials is None:
+            credentials = credential_store.load(address)
+            if credentials: self.app.credentials[address] = credentials
         def worker():
             try: self.events.put(('shares', generation, network.list_shares(address, credentials)))
             except PermissionError: self.events.put(('auth', generation, bool(credentials)))
@@ -137,8 +146,11 @@ class Finder:
         if not self.address:
             self.status.set('Pick a device first.'); return
         address = self.address
-        def signed(credentials):
+        def signed(credentials, remember=False):
             self.app.credentials[address] = credentials
+            if remember:
+                try: credential_store.save(address, credentials)
+                except RuntimeError as exc: messagebox.showerror('Remember password', str(exc), parent=self.window)
             if self.address == address: self.browse(address)
         ask_credentials(self.window, address, signed)
 
@@ -186,6 +198,10 @@ class Finder:
                     for i, share in enumerate(self.shares): self.folders.insert('', 'end', iid=str(i), values=(share['name'], share['comment']))
                     self.status.set('Pick a folder, then click Connect this folder.' if self.shares else 'No visible shared folders. Try Sign in to see more folders.')
                 elif kind == 'auth':
+                    address = self.address
+                    if event[2]:
+                        self.app.credentials.pop(address, None)
+                        credential_store.delete(address)
                     self.status.set('Sign-in details were not accepted. Try again.' if event[2] else 'This device needs a sign-in to show its folders.')
                     self.sign_in()
                 elif kind == 'browse_error': self.status.set(event[2])

@@ -13,6 +13,7 @@ import time
 import tkinter as tk
 from tkinter import ttk, messagebox
 import network
+import credentials as credential_store
 import ui
 from app_info import window_title
 from discovery import Finder, ask_credentials
@@ -317,7 +318,11 @@ class App:
                 if item['kind'] == 'Network share':
                     address = urlsplit(item['source']).hostname if not WINDOWS else item['source'].lstrip('\\').split('\\')[0]
                     if connect:
-                        network.mount_share(item['source'], item['target'], self.credentials.get(address))
+                        auth = self.credentials.get(address)
+                        if auth is None:
+                            auth = credential_store.load(address)
+                            if auth: self.credentials[address] = auth
+                        network.mount_share(item['source'], item['target'], auth)
                     elif WINDOWS:
                         network.win_disconnect(item['target'])
                     else:
@@ -372,8 +377,14 @@ class App:
             if status == 'Sign in':
                 source = self.items[i]['source']
                 address = urlsplit(source).hostname if not WINDOWS else source.lstrip('\\').split('\\')[0]
-                def signed(credentials, index=i, host=address):
-                    self.credentials[host] = credentials; self.operation(True, index)
+                self.credentials.pop(address, None)
+                credential_store.delete(address)
+                def signed(credentials, remember=False, index=i, host=address):
+                    self.credentials[host] = credentials
+                    if remember:
+                        try: credential_store.save(host, credentials)
+                        except RuntimeError as exc: messagebox.showerror('Remember password', str(exc), parent=self.root)
+                    self.operation(True, index)
                 ask_credentials(self.root, address, signed)
             elif error:
                 self.open_when_connected.discard(i)

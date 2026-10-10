@@ -88,7 +88,7 @@ The minimum display test target is **1280×720**. Current controlled rendering c
 3. Click a **shared folder** in the right list.
 4. Click **Connect this folder**. The app remembers it and opens your file manager.
 
-If a device requires a username and password, a sign-in form appears in the app. Use an account on that device. The domain is usually blank. If a device answers but shows no folders, try **Sign in to see more folders**.
+If a device requires a username and password, a sign-in form appears in the app. Use an account on that device. The domain is usually blank. Check **Remember this password in the system password store** to reuse it on later launches; passwords are kept in Windows Credential Manager or the Linux desktop keyring, never in ShareScout settings. If a device answers but shows no folders, try **Sign in to see more folders**.
 
 Windows chooses an unused drive letter automatically. Linux mounts through GVfs; the folder opens in your file manager and is available through the desktop’s mounted network locations. Most GNOME, Cinnamon, MATE and XFCE desktops support this flow. KDE’s file manager may use its own SMB sign-in when opening a URI.
 
@@ -122,7 +122,7 @@ Cloud drives remain mounted while the app is open. Disconnect cloud drives befor
 
 ## Local settings
 
-Connection names and locations are stored in `%LOCALAPPDATA%\ResourceMapper` on Windows or `~/.config/ResourceMapper` on Linux. ShareScout does not save network passwords or put them in command arguments. Linux browsing passes a password only to the child process environment; Linux mounting passes credentials through stdin. Cloud OAuth tokens are managed by rclone’s configuration.
+Connection names and locations are stored in `%LOCALAPPDATA%\ResourceMapper` on Windows or `~/.config/ResourceMapper` on Linux. Network passwords are saved only when you choose the system password store option. Linux uses the desktop keyring (`secret-tool`); Windows uses Credential Manager. Passwords are never stored in ShareScout settings or put in command arguments. Linux browsing passes a password only to the child process environment; Linux mounting passes credentials through stdin. Cloud OAuth tokens are managed by rclone’s configuration.
 
 Use **Check required tools** if tools are missing. Windows installer logs appear in the initial setup terminal. Cloud logs are in the settings directory. Cloud cache size is a soft 2 GB limit; open files can exceed it.
 

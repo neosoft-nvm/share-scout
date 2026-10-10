@@ -44,7 +44,7 @@ Priority: optional
 Architecture: all
 Maintainer: ShareScout <resource-mapper@localhost>
 Installed-Size: {(sum(len(data) for data, mode in files.values()) + 1023) // 1024}
-Depends: python3 (>= 3.8), python3-tk, python3-gi, smbclient, iproute2, gvfs-backends, libglib2.0-bin, rclone, fuse3
+Depends: python3 (>= 3.8), python3-tk, python3-gi, smbclient, iproute2, gvfs-backends, libglib2.0-bin, libsecret-tools, rclone, fuse3
 Description: Find computers and connect shared folders
  Automatically discover local IPv4 SMB file servers and browse their shares.
  Select a shared folder to save, connect and open it. Includes rclone cloud mounts.
