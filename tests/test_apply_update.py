@@ -9,6 +9,19 @@ import apply_update
 
 
 class ApplyUpdateTests(unittest.TestCase):
+    def test_launcher_matches_window_class_and_uses_installed_icon(self):
+        with tempfile.TemporaryDirectory() as parent:
+            home = Path(parent)
+            target = home / 'app with spaces'
+            target.mkdir()
+            (target / 'sharescout.png').write_bytes(b'icon')
+            with patch.object(apply_update.Path, 'home', return_value=home):
+                apply_update.write_linux_launcher(target)
+            entry = (home / '.local/share/applications/resource-mapper.desktop').read_text()
+            self.assertIn('StartupWMClass=ShareScout\n', entry)
+            self.assertIn('Icon=' + str(target / 'sharescout.png') + '\n', entry)
+            self.assertIn('Exec="' + str(target / 'Start-Resource-Mapper') + '"', entry)
+
     def test_staged_files_replace_install_and_preserve_user_files(self):
         with tempfile.TemporaryDirectory() as parent:
             root = Path(parent)

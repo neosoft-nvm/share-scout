@@ -189,7 +189,7 @@ def main():
     from tkinter import messagebox
     import ui
     from folder_share_ui import FolderShare
-    ui.enable_dpi_awareness(); root = tk.Tk(); root.withdraw()
+    ui.enable_dpi_awareness(); root = tk.Tk(className='ShareScout'); ui.set_app_icon(root); root.withdraw()
     try: folder = selected_folder(sys.argv[1:])
     except ValueError as exc:
         messagebox.showerror('Share a folder', str(exc), parent=root); root.destroy(); return

@@ -90,11 +90,7 @@ class App:
         for item in self.items:
             item['status'] = 'Disconnected'
         root.title(window_title())
-        try:
-            self.app_icon = tk.PhotoImage(file=str(Path(__file__).with_name('sharescout.png')))
-            root.iconphoto(True, self.app_icon)
-        except tk.TclError:
-            self.app_icon = None
+        ui.set_app_icon(root)
         style = ttk.Style()
         style.theme_use('clam')
         ui.apply_theme(root)
@@ -457,7 +453,7 @@ def main():
         return
     try:
         ui.enable_dpi_awareness()
-        app_root = tk.Tk()
+        app_root = tk.Tk(className='ShareScout')
         App(app_root)
         instance.attach(app_root)
         app_root.mainloop()

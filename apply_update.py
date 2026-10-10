@@ -55,7 +55,8 @@ def write_linux_launcher(target):
     executable = executable.replace('%', '%%')
     entry = ('[Desktop Entry]\nType=Application\nName=ShareScout\n'
              'Comment=Find and connect shared folders\nExec="' + executable + '"\n'
-             'Icon=sharescout\nTerminal=false\nCategories=Network;FileManager;\n')
+             'Icon=' + str(target / 'sharescout.png') + '\nStartupWMClass=ShareScout\n'
+             'Terminal=false\nCategories=Network;FileManager;\n')
     (applications / 'resource-mapper.desktop').write_text(entry, encoding='utf-8')
 
 

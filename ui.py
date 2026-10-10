@@ -1,7 +1,17 @@
 """Screen-aware windows with a scrollable body and permanently visible actions."""
 import os
+from pathlib import Path
 import tkinter as tk
 from tkinter import ttk
+
+
+def set_app_icon(root):
+    """Keep the icon alive and use it for the root and child windows."""
+    try:
+        root._sharescout_icon = tk.PhotoImage(file=str(Path(__file__).with_name('sharescout.png')))
+        root.iconphoto(True, root._sharescout_icon)
+    except tk.TclError:
+        root._sharescout_icon = None
 
 
 def enable_dpi_awareness():

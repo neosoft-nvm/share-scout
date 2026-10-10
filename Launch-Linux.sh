@@ -39,7 +39,7 @@ value = str(location / 'Start-Resource-Mapper')
 for char in ['\\', '"', '`', '$']:
     value = value.replace(char, '\\' + char)
 value = value.replace('%', '%%')
-entry = '[Desktop Entry]\nType=Application\nName=ShareScout\nComment=Find and connect shared folders\nExec="' + value + '"\nIcon=sharescout\nTerminal=false\nCategories=Network;FileManager;\n'
+entry = '[Desktop Entry]\nType=Application\nName=ShareScout\nComment=Find and connect shared folders\nExec="' + value + '"\nIcon=' + str(location / 'sharescout.png') + '\nStartupWMClass=ShareScout\nTerminal=false\nCategories=Network;FileManager;\n'
 (Path.home() / '.local/share/applications/resource-mapper.desktop').write_text(entry)
 PY
 python3 "$app_dir/file_manager.py" "$app_dir"
