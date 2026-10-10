@@ -19,6 +19,11 @@ files['usr/share/icons/hicolor/scalable/apps/sharescout.svg'] = ((source / 'shar
 files['usr/share/resource-mapper/sharescout.png'] = ((source / 'sharescout.png').read_bytes(), 0o644)
 for icon_path in sorted(source.glob('icon_*.png')):
     files['usr/share/resource-mapper/' + icon_path.name] = (icon_path.read_bytes(), 0o644)
+if (source / 'vendor').is_dir():
+    for path in sorted((source / 'vendor').rglob('*')):
+        if path.is_file() and '__pycache__' not in path.parts:
+            rel = path.relative_to(source)
+            files['usr/share/resource-mapper/' + str(rel).replace('\\', '/')] = (path.read_bytes(), 0o644)
 files['usr/bin/resource-mapper'] = (b'#!/bin/sh\nexec /usr/bin/python3 /usr/share/resource-mapper/resource_mapper.py "$@"\n', 0o755)
 files['usr/share/applications/resource-mapper.desktop'] = (b'[Desktop Entry]\nType=Application\nName=ShareScout\nComment=Find computers and connect shared folders\nExec=resource-mapper\nIcon=/usr/share/resource-mapper/sharescout.png\nStartupWMClass=ShareScout\nTerminal=false\nCategories=Network;FileManager;\n', 0o644)
 for document in ('README.md', 'ROADMAP.md'):

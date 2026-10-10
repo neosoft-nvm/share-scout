@@ -18,6 +18,10 @@ try {
         Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.py' | Copy-Item -Destination $appDir -Force
         Copy-Item -LiteralPath "$PSScriptRoot\Launch-Windows.cmd", "$PSScriptRoot\Setup-Windows.ps1" -Destination $appDir -Force
         Copy-Item -LiteralPath "$PSScriptRoot\sharescout.png", "$PSScriptRoot\sharescout.ico", "$PSScriptRoot\sharescout.svg" -Destination $appDir -Force
+        Get-ChildItem -LiteralPath $PSScriptRoot -Filter 'icon_*.png' | Copy-Item -Destination $appDir -Force
+        if (Test-Path "$PSScriptRoot\vendor") {
+            Copy-Item -Recurse -LiteralPath "$PSScriptRoot\vendor" -Destination "$appDir\vendor" -Force
+        }
     }
     $pythonArgs = ''
     if (Get-Command py -ErrorAction SilentlyContinue) {

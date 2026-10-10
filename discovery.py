@@ -1,6 +1,13 @@
 """Beginner-first shared folder discovery wizard."""
+import os
 import queue
+import sys
 import threading
+
+vendor_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vendor')
+if os.path.isdir(vendor_path) and vendor_path not in sys.path:
+    sys.path.insert(0, vendor_path)
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 import network

@@ -10,6 +10,11 @@ import subprocess
 import sys
 import threading
 import time
+
+vendor_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vendor')
+if os.path.isdir(vendor_path) and vendor_path not in sys.path:
+    sys.path.insert(0, vendor_path)
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 import network
@@ -138,24 +143,63 @@ class App:
         self.summary = tk.StringVar()
         tk.Label(table_hdr, textvariable=self.summary, font=('', 9), fg='#64748b', bg='#f8fafc').pack(side='right')
 
-        # Treeview in White Card Frame
-        table_card = tk.Frame(main, bg='white', highlightbackground='#e2e8f0', highlightthickness=1)
-        table_card.pack(fill='both', expand=True, pady=(0, 8))
-        self.tree = ui.tree(table_card, columns=('kind', 'location', 'status', 'auto'), show='tree headings', selectmode='browse', height=8)
-        self.tree.heading('#0', text='Folder Name'); self.tree.column('#0', width=250, minwidth=180, stretch=True)
-        self.tree.heading('kind', text='Type'); self.tree.column('kind', width=120, minwidth=100, stretch=False)
-        self.tree.heading('location', text='Location or Path'); self.tree.column('location', width=280, minwidth=200, stretch=True)
-        self.tree.heading('status', text='Status'); self.tree.column('status', width=130, minwidth=110, stretch=False)
-        self.tree.heading('auto', text='On launch'); self.tree.column('auto', width=80, minwidth=70, stretch=False)
-        self.tree.bind('<Double-1>', lambda _: self.open())
-        ui.buttons(layout.footer, [('Open folder', self.open), ('Connect', lambda: self.operation(True)), ('Disconnect', lambda: self.operation(False)), ('Forget folder', self.remove)], accent=('Open folder',), maximum=4)
+        self.selected_index = None
+        if ui.HAS_CTK:
+            import customtkinter as ctk
+            table_card = ctk.CTkFrame(main, corner_radius=12, fg_color='#ffffff', border_width=1, border_color='#e2e8f0')
+            table_card.pack(fill='both', expand=True, pady=(0, 8))
+            self.rows_box = ctk.CTkScrollableFrame(table_card, fg_color='transparent', height=240, scrollbar_button_color='#cbd5e1', scrollbar_button_hover_color='#94a3b8')
+            self.rows_box.pack(fill='both', expand=True, padx=8, pady=8)
+            self._hidden_tree_frame = tk.Frame(root)
+            self.tree = ui.tree(self._hidden_tree_frame, columns=('kind', 'location', 'status', 'auto'), show='tree headings', selectmode='browse', height=1)
+            open_btn = ctk.CTkButton(layout.footer, text='Open in File Manager', corner_radius=8, fg_color='#4f46e5', hover_color='#4338ca', font=ctk.CTkFont(size=13, weight='bold'), height=36, command=self.open)
+            open_btn.pack(side='left', padx=(0, 8))
+            conn_btn = ctk.CTkButton(layout.footer, text='Connect', corner_radius=8, fg_color='#ffffff', hover_color='#f1f5f9', text_color='#0f172a', border_width=1, border_color='#cbd5e1', font=ctk.CTkFont(size=13), height=36, command=lambda: self.operation(True))
+            conn_btn.pack(side='left', padx=4)
+            disc_btn = ctk.CTkButton(layout.footer, text='Disconnect', corner_radius=8, fg_color='#ffffff', hover_color='#f1f5f9', text_color='#0f172a', border_width=1, border_color='#cbd5e1', font=ctk.CTkFont(size=13), height=36, command=lambda: self.operation(False))
+            disc_btn.pack(side='left', padx=4)
+            rem_btn = ctk.CTkButton(layout.footer, text='Remove', corner_radius=8, fg_color='#ffffff', hover_color='#fee2e2', text_color='#b91c1c', border_width=1, border_color='#fecaca', font=ctk.CTkFont(size=13), height=36, command=self.remove)
+            rem_btn.pack(side='left', padx=4)
+        else:
+            table_card = tk.Frame(main, bg='white', highlightbackground='#e2e8f0', highlightthickness=1)
+            table_card.pack(fill='both', expand=True, pady=(0, 8))
+            self.tree = ui.tree(table_card, columns=('kind', 'location', 'status', 'auto'), show='tree headings', selectmode='browse', height=8)
+            self.tree.heading('#0', text='Folder Name'); self.tree.column('#0', width=250, minwidth=180, stretch=True)
+            self.tree.heading('kind', text='Type'); self.tree.column('kind', width=120, minwidth=100, stretch=False)
+            self.tree.heading('location', text='Location or Path'); self.tree.column('location', width=280, minwidth=200, stretch=True)
+            self.tree.heading('status', text='Status'); self.tree.column('status', width=130, minwidth=110, stretch=False)
+            self.tree.heading('auto', text='On launch'); self.tree.column('auto', width=80, minwidth=70, stretch=False)
+            self.tree.bind('<Double-1>', lambda _: self.open())
+            ui.buttons(layout.footer, [('Open folder', self.open), ('Connect', lambda: self.operation(True)), ('Disconnect', lambda: self.operation(False)), ('Forget folder', self.remove)], accent=('Open folder',), maximum=4)
 
         # Secondary tools
-        tools = ttk.LabelFrame(main, text='More ways to connect & tools', padding=6); tools.pack(fill='x', pady=(0, 8))
-        ui.buttons(tools, [('Add network address', self.add), ('Refresh connected folders', self.sync_connections),
-                          ('Check required tools', self.check), ('Check for updates', self.check_updates),
-                          ('Help sharing from this PC', lambda: self.sharing(force=True))] +
-                   ([] if WINDOWS else [('File-manager shortcuts', self.install_shortcuts)]), maximum=3)
+        if ui.HAS_CTK:
+            tools_card = ctk.CTkFrame(main, corner_radius=12, fg_color='#ffffff', border_width=1, border_color='#e2e8f0')
+            tools_card.pack(fill='x', pady=(0, 10))
+            ctk.CTkLabel(tools_card, text='More ways to connect & tools', font=ctk.CTkFont(size=12, weight='bold'), text_color='#475569').pack(anchor='w', padx=16, pady=(10, 6))
+            tools_grid = ctk.CTkFrame(tools_card, fg_color='transparent')
+            tools_grid.pack(fill='x', padx=12, pady=(0, 10))
+            tool_items = [
+                ('Add network address', self.add),
+                ('Refresh connected folders', self.sync_connections),
+                ('Check required tools', self.check),
+                ('Check for updates', self.check_updates),
+                ('Help sharing from this PC', lambda: self.sharing(force=True))
+            ] + ([] if WINDOWS else [('File-manager shortcuts', self.install_shortcuts)])
+            cols = 3
+            for c in range(cols):
+                tools_grid.columnconfigure(c, weight=1)
+            for idx, (t_text, t_cmd) in enumerate(tool_items):
+                r = idx // cols
+                c = idx % cols
+                t_btn = ctk.CTkButton(tools_grid, text=t_text, corner_radius=8, fg_color='#f8fafc', hover_color='#f1f5f9', text_color='#0f172a', border_width=1, border_color='#e2e8f0', font=ctk.CTkFont(size=11), height=30, command=t_cmd)
+                t_btn.grid(row=r, column=c, sticky='ew', padx=4, pady=3)
+        else:
+            tools = ttk.LabelFrame(main, text='More ways to connect & tools', padding=6); tools.pack(fill='x', pady=(0, 8))
+            ui.buttons(tools, [('Add network address', self.add), ('Refresh connected folders', self.sync_connections),
+                              ('Check required tools', self.check), ('Check for updates', self.check_updates),
+                              ('Help sharing from this PC', lambda: self.sharing(force=True))] +
+                       ([] if WINDOWS else [('File-manager shortcuts', self.install_shortcuts)]), maximum=3)
         self.note = tk.StringVar(value='Choose a folder above and click Open folder. Add your first folder using the action cards above.')
         ui.label(main, textvariable=self.note, wraplength=850, style='Muted.TLabel').pack(fill='x')
         self.refresh()
@@ -282,10 +326,83 @@ class App:
             status = item.get('status', 'Disconnected')
             tag = 'connected' if status == 'Connected' else ('connecting' if 'Connect' in status else 'disconnected')
             self.tree.item(str(i), tags=(tag,))
+        if hasattr(self, 'rows_box'):
+            self._render_modern_rows()
+
+    def _render_modern_rows(self):
+        import customtkinter as ctk
+        for child in self.rows_box.winfo_children():
+            child.destroy()
+        if not self.items:
+            empty = ctk.CTkFrame(self.rows_box, corner_radius=8, fg_color='#f8fafc', border_width=1, border_color='#e2e8f0')
+            empty.pack(fill='x', padx=8, pady=20)
+            ctk.CTkLabel(empty, text='No saved folders yet', font=ctk.CTkFont(size=13, weight='bold'), text_color='#0f172a').pack(pady=(12, 4))
+            ctk.CTkLabel(empty, text='Click "Find Network Folders" or "Connect Cloud Storage" above to get started.', font=ctk.CTkFont(size=11), text_color='#64748b').pack(pady=(0, 12))
+            return
+
+        sel_idx = self.selected()
+        for i, item in enumerate(self.items):
+            is_sel = (sel_idx == i)
+            row_bg = '#eef2ff' if is_sel else '#ffffff'
+            row_border = '#4f46e5' if is_sel else '#f1f5f9'
+            row = ctk.CTkFrame(self.rows_box, corner_radius=8, fg_color=row_bg, border_width=1, border_color=row_border, height=54, cursor='hand2')
+            row.pack(fill='x', padx=4, pady=4)
+            row.pack_propagate(False)
+
+            icon_str = '📁' if item.get('kind') == 'Network share' else '☁'
+            ctk.CTkLabel(row, text=icon_str, font=ctk.CTkFont(size=16), width=32).pack(side='left', padx=(10, 4))
+
+            info = ctk.CTkFrame(row, fg_color='transparent')
+            info.pack(side='left', fill='y', padx=4)
+            ctk.CTkLabel(info, text=item.get('name', 'Folder'), font=ctk.CTkFont(size=13, weight='bold'), text_color='#0f172a', anchor='w').pack(anchor='w', pady=(4, 0))
+            loc = item.get('target') or item.get('source') or ''
+            ctk.CTkLabel(info, text=loc, font=ctk.CTkFont(size=11), text_color='#64748b', anchor='w').pack(anchor='w', pady=(0, 4))
+
+            status = item.get('status', 'Disconnected')
+            if status == 'Connected':
+                badge_bg, badge_fg = '#dcfce7', '#15803d'
+            elif 'Connect' in status:
+                badge_bg, badge_fg = '#e0f2fe', '#0284c7'
+            else:
+                badge_bg, badge_fg = '#f1f5f9', '#64748b'
+
+            pill = ctk.CTkLabel(row, text=status, corner_radius=10, fg_color=badge_bg, text_color=badge_fg, font=ctk.CTkFont(size=11, weight='bold'), width=96, height=24)
+            pill.pack(side='right', padx=14)
+
+            kind_lbl = ctk.CTkLabel(row, text=item.get('kind', ''), font=ctk.CTkFont(size=11), text_color='#475569')
+            kind_lbl.pack(side='right', padx=10)
+
+            def make_handler(idx):
+                return lambda _: self.select_item(idx)
+
+            row.bind('<Button-1>', make_handler(i))
+            row.bind('<Double-1>', lambda _: self.open())
+            for child in row.winfo_children():
+                child.bind('<Button-1>', make_handler(i))
+                child.bind('<Double-1>', lambda _: self.open())
+
+    def select_item(self, index):
+        self.selected_index = index
+        if hasattr(self, 'tree') and self.tree:
+            try:
+                self.tree.selection_set(str(index))
+            except Exception:
+                pass
+        if hasattr(self, 'rows_box'):
+            self._render_modern_rows()
 
     def selected(self):
-        selection = self.tree.selection()
-        return int(selection[0]) if selection else None
+        if hasattr(self, 'tree') and self.tree:
+            try:
+                selection = self.tree.selection()
+                if selection and str(selection[0]).isdigit():
+                    return int(selection[0])
+            except Exception:
+                pass
+        if getattr(self, 'selected_index', None) is not None:
+            if 0 <= self.selected_index < len(self.items):
+                return self.selected_index
+        return None
 
     def sync_connections(self):
         if getattr(self, 'syncing', False): return

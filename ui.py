@@ -1,8 +1,21 @@
-"""Screen-aware windows with a scrollable body and permanently visible actions."""
 import os
 from pathlib import Path
+import sys
 import tkinter as tk
 from tkinter import ttk
+
+vendor_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vendor')
+if os.path.isdir(vendor_path) and vendor_path not in sys.path:
+    sys.path.insert(0, vendor_path)
+
+try:
+    import customtkinter as ctk
+    ctk.set_appearance_mode('light')
+    ctk.set_default_color_theme('blue')
+    HAS_CTK = True
+except Exception:
+    ctk = None
+    HAS_CTK = False
 
 
 def set_app_icon(root):
@@ -230,6 +243,42 @@ def apply_theme(root):
 
 
 def action_card(parent, icon, title, subtitle, callback, accent=False, icon_image=None):
+    if HAS_CTK:
+        border_norm = '#c7d2fe' if accent else '#e2e8f0'
+        border_hover = '#4f46e5'
+        card = ctk.CTkFrame(parent, corner_radius=12, fg_color='#ffffff', border_width=1, border_color=border_norm, cursor='hand2')
+        if icon_image is not None:
+            icon_lbl = tk.Label(card, image=icon_image, bg='#ffffff')
+        else:
+            icon_lbl = ctk.CTkLabel(card, text=str(icon), font=ctk.CTkFont(size=24))
+        icon_lbl.pack(pady=(12, 4))
+        title_lbl = ctk.CTkLabel(card, text=title, font=ctk.CTkFont(size=13, weight='bold'), text_color='#1e1b4b' if accent else '#0f172a')
+        title_lbl.pack()
+        sub_lbl = ctk.CTkLabel(card, text=subtitle, font=ctk.CTkFont(size=11), text_color='#64748b', wraplength=190)
+        sub_lbl.pack(pady=(2, 10))
+        btn_text = 'Scan Network' if 'Find' in title else ('Add Cloud Drive' if 'Cloud' in title else 'Share Folder')
+        btn_fg = '#4f46e5' if accent else '#f1f5f9'
+        btn_hover = '#4338ca' if accent else '#e2e8f0'
+        btn_tc = '#ffffff' if accent else '#0f172a'
+        action_btn = ctk.CTkButton(card, text=btn_text, corner_radius=8, fg_color=btn_fg, hover_color=btn_hover, text_color=btn_tc, font=ctk.CTkFont(size=12, weight='bold'), height=32, command=callback)
+        action_btn.pack(pady=(0, 10), padx=16, fill='x')
+
+        def on_enter(_):
+            card.configure(border_color=border_hover)
+
+        def on_leave(_):
+            card.configure(border_color=border_norm)
+
+        def on_click(_):
+            callback()
+
+        for w in (card, icon_lbl, title_lbl, sub_lbl):
+            w.bind('<Enter>', on_enter)
+            w.bind('<Leave>', on_leave)
+            w.bind('<Button-1>', on_click)
+
+        return card
+
     bg_norm = '#ffffff'
     border_norm = '#c7d2fe' if accent else '#e2e8f0'
     bg_hover = '#f8fafc'
