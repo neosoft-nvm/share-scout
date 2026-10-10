@@ -114,12 +114,7 @@ class Finder:
             self.window.transient(app.root)
             self.window.protocol('WM_DELETE_WINDOW', self.close)
 
-            # Balanced responsive geometry
-            sw, sh = self.window.winfo_screenwidth(), self.window.winfo_screenheight()
-            w, h = min(960, sw - 40), min(640, sh - 60)
-            x, y = max(0, (sw - w) // 2), max(0, (sh - h) // 2)
-            self.window.geometry(f'{w}x{h}+{x}+{y}')
-            self.window.minsize(780, 520)
+            ui.fit_window(self.window, 940, 620)
 
             main_container = ctk.CTkFrame(self.window, fg_color='transparent', corner_radius=0)
             main_container.pack(fill='both', expand=True, padx=20, pady=(16, 16))
@@ -360,17 +355,18 @@ class Finder:
         self.device_count_lbl.configure(text=f'{len(self.devices)} device(s)')
 
     def select_device(self, address):
-        self.selected_device = address
+        self.selected_device = str(address)
+        clean_ip = str(address).split(' - ')[0].strip() if ' - ' in str(address) else str(address)
         if HAS_CTK:
             for addr, dev in self.devices.items():
-                if addr == address:
+                if addr == address or addr.startswith(clean_ip):
                     dev['card'].configure(border_color='#4f46e5', border_width=2, fg_color='#eef2ff')
                 else:
                     dev['card'].configure(border_color='#e2e8f0', border_width=1, fg_color='#ffffff')
-            self.folders_title.configure(text=f'Shared Folders on {address}')
+            self.folders_title.configure(text=f'Shared Folders on {clean_ip}')
             self.share_count_lbl.configure(text='Loading…')
-            self._show_empty_folders_placeholder(f'Looking for folders on {address}…')
-        self.browse(address)
+            self._show_empty_folders_placeholder(f'Looking for folders on {clean_ip}…')
+        self.browse(clean_ip)
 
     def _render_shares(self):
         if not HAS_CTK: return

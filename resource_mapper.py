@@ -96,6 +96,7 @@ class App:
             item['status'] = 'Disconnected'
         root.title(window_title())
         ui.set_app_icon(root)
+        ui.enable_dpi_awareness(root)
         style = ttk.Style()
         ui.apply_theme(root)
         layout = ui.Layout(root, 960, 660)
@@ -613,8 +614,12 @@ def main():
             print('ShareScout is already running. Its window could not be activated; switch to it using your desktop taskbar.')
         return
     try:
-        ui.enable_dpi_awareness()
-        app_root = tk.Tk(className='ShareScout')
+        if ui.HAS_CTK:
+            import customtkinter as ctk
+            app_root = ctk.CTk()
+        else:
+            app_root = tk.Tk(className='ShareScout')
+        ui.enable_dpi_awareness(app_root)
         App(app_root)
         instance.attach(app_root)
         app_root.mainloop()

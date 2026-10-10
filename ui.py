@@ -27,7 +27,16 @@ def set_app_icon(root):
         root._sharescout_icon = None
 
 
-def enable_dpi_awareness():
+def enable_dpi_awareness(root=None):
+    if HAS_CTK and root is not None:
+        try:
+            dpi = root.winfo_fpixels('1i')
+            if dpi > 0:
+                scale = max(1.0, round(dpi / 96.0, 2))
+                ctk.set_widget_scaling(scale)
+                ctk.set_window_scaling(scale)
+        except Exception:
+            pass
     if os.name != 'nt': return
     import ctypes
     try: ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
@@ -55,10 +64,20 @@ def heading_font(window, preferred=22):
 def fit_window(window, width=900, height=600):
     screen_w = window.winfo_screenwidth()
     screen_h = window.winfo_screenheight()
+    if HAS_CTK:
+        try:
+            scale = ctk.ScalingTracker.get_window_scaling(window)
+        except Exception:
+            scale = 1.0
+        phys_w = int(width * scale)
+        phys_h = int(height * scale)
+        x = max(0, (screen_w - phys_w) // 2)
+        y = max(0, (screen_h - phys_h) // 2)
+        window.geometry(f'{width}x{height}+{int(x / scale)}+{int(y / scale)}')
+        window.minsize(min(450, width), min(350, height))
+        return
     dpi = window.winfo_fpixels('1i')
     w, h = window_size(screen_w, screen_h, width, height, dpi)
-    w = min(w, 1080)
-    h = min(h, 720)
     x = max(0, (screen_w - w) // 2)
     y = max(0, (screen_h - h) // 2)
     window.geometry(f'{w}x{h}+{x}+{y}')

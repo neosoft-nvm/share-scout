@@ -165,7 +165,13 @@ class ScalingTracker:
                 return (x_dpi.value + y_dpi.value) / (2 * DPI100pc)
 
             else:
-                return 1  # DPI awareness on Linux not implemented
+                try:
+                    dpi = window.winfo_fpixels('1i')
+                    if dpi > 0:
+                        return max(1.0, round(dpi / 96.0, 2))
+                except Exception:
+                    pass
+                return 1
         else:
             return 1
 
