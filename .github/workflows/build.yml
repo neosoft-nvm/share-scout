@@ -55,6 +55,7 @@ jobs:
           releaseName: 'ShareScout v__VERSION__'
           releaseDraft: false
           prerelease: false
+          args: --ignore-version-mismatches
 
   build-android:
     needs: test
@@ -68,7 +69,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
       - run: npm install
       - run: npm run build
       - run: npx cap sync android
