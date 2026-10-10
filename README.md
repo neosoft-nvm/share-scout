@@ -16,47 +16,55 @@ The goal is a simple **scan → choose a device → choose a folder → connect*
 
 ## Installation & Quick Start
 
-Choose your platform below for easy, one-step setup:
+Follow these simple step-by-step instructions for your operating system.
 
-### Linux (Debian, Ubuntu, Zorin, Linux Mint)
-- **Debian Package (`.deb`)**:
-  Download or build `resource-mapper_0.6.0_all.deb`, then install via your software center or terminal:
-  ```bash
-  sudo apt install ./dist/resource-mapper_0.6.0_all.deb
-  ```
-- **Automated Setup Script (Source / Git)**:
-  ```bash
-  git clone https://github.com/neosoft-nvm/share-scout.git
-  cd share-scout
-  bash Launch-Linux.sh
-  ```
-  *Installs required packages (`libglib2.0-bin`, `gvfs-backends`, `smbclient`, `rclone`), installs the application to `~/.local/share/ResourceMapper`, and adds **ShareScout** to your desktop application menu.*
-
-### Linux (Fedora, Arch Linux, Other)
+### Step 1: Clone the Repository (All Platforms)
+Open your terminal (Linux) or Command Prompt / PowerShell (Windows) and clone the repository:
 ```bash
 git clone https://github.com/neosoft-nvm/share-scout.git
 cd share-scout
+```
+
+---
+
+### Step 2: Install & Run for Your Operating System
+
+#### Linux (Debian, Ubuntu, Zorin, Linux Mint)
+- **Automated Setup Script (Recommended)**:
+  ```bash
+  bash Launch-Linux.sh
+  ```
+  *Installs all required desktop packages (`libglib2.0-bin`, `gvfs-backends`, `smbclient`, `rclone`), copies the app to `~/.local/share/ResourceMapper`, and adds **ShareScout** to your Applications menu.*
+
+- **Or Install the Debian Package (`.deb`)**:
+  ```bash
+  sudo apt install ./dist/resource-mapper_0.6.0_all.deb
+  ```
+
+#### Linux (Fedora, Arch Linux, Other Distributions)
+```bash
 bash Launch-Linux.sh
 ```
-*Auto-detects `dnf` or `pacman`, installs GIO/Samba/FUSE dependencies, and sets up your desktop application menu entry.*
+*Auto-detects your system package manager (`dnf` or `pacman`), installs GIO/Samba/FUSE dependencies, and sets up your desktop menu entry.*
 
-### Windows (10 & 11)
-1. Download or clone the repository:
-   ```cmd
-   git clone https://github.com/neosoft-nvm/share-scout.git
-   cd share-scout
-   ```
-2. Double-click **`Launch-Windows.cmd`** (or run `powershell -ExecutionPolicy Bypass -File Setup-Windows.ps1`).
-   *Automatically installs required tools (WinFsp, rclone) via winget and adds **ShareScout** to the Start menu.*
+#### Windows (10 & 11)
+Inside the cloned `share-scout` folder:
+1. Double-click **`Launch-Windows.cmd`** (or run `powershell -ExecutionPolicy Bypass -File Setup-Windows.ps1`).
+2. The setup script installs missing tools (`WinFsp`, `rclone`) through winget and adds **ShareScout** to your Start menu.
 
-### Quick Launch Without Setup
-If dependencies are already installed on your system:
+#### Quick Launch (Direct from Source)
+If system dependencies are already installed:
 ```bash
 python3 resource_mapper.py
 ```
 
-### Launch Notes & Single Instance
-After setup, open **ShareScout** directly from your application menu or Start menu. No terminal is required. ShareScout enforces a single session per user: launching it again brings the existing active window forward.
+---
+
+### Everyday Launch & Desktop Integration
+Once installed, no terminal is needed:
+- **Linux**: Open **ShareScout** directly from your desktop **Applications menu**.
+- **Windows**: Open **ShareScout** from your **Start menu**.
+- **Single Instance**: ShareScout enforces a single session per user; launching it again brings the active window forward.
 
 ## Check for updates
 
