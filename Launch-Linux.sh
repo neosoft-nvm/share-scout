@@ -24,7 +24,7 @@ fi
 app_dir="$HOME/.local/share/ResourceMapper"
 mkdir -p "$app_dir" "$HOME/.local/share/applications"
 if [[ "$PWD" != "$app_dir" ]]; then
-  cp -- ./*.py ./Launch-Linux.sh ./Start-Resource-Mapper ./sharescout.png ./sharescout.svg "$app_dir/"
+  cp -- ./*.py ./Launch-Linux.sh ./Start-Resource-Mapper ./sharescout.png ./sharescout.svg ./icon_*.png "$app_dir/"
   chmod +x "$app_dir/Launch-Linux.sh" "$app_dir/Start-Resource-Mapper"
 fi
 icon_dir="$HOME/.local/share/icons/hicolor/128x128/apps"

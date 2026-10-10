@@ -111,16 +111,24 @@ class App:
 
         ui.label(main, text='Find it. Connect it. Make yourself at home.', style='Subtitle.TLabel').pack(fill='x', pady=(2, 12))
 
+        # Pre-load card icons
+        self._icons = {}
+        for name, fname in [('network', 'icon_network.png'), ('cloud', 'icon_cloud.png'), ('share', 'icon_share.png')]:
+            fpath = Path(__file__).with_name(fname)
+            if fpath.exists():
+                try: self._icons[name] = tk.PhotoImage(file=str(fpath))
+                except Exception: pass
+
         # Hero Action Cards
         cards_bar = tk.Frame(main, bg='#f8fafc')
         cards_bar.pack(fill='x', pady=(0, 14))
         for col in range(3):
             cards_bar.columnconfigure(col, weight=1)
-        c1 = ui.action_card(cards_bar, '📡', 'Find Network Folders', 'Scan nearby PCs & NAS devices', self.find, accent=True)
+        c1 = ui.action_card(cards_bar, '📡', 'Find Network Folders', 'Scan nearby PCs & NAS devices', self.find, accent=True, icon_image=self._icons.get('network'))
         c1.grid(row=0, column=0, sticky='nsew', padx=(0, 6))
-        c2 = ui.action_card(cards_bar, '☁', 'Connect Cloud Storage', 'Google Drive & OneDrive', self.sign_in, accent=False)
+        c2 = ui.action_card(cards_bar, '☁', 'Connect Cloud Storage', 'Google Drive & OneDrive', self.sign_in, accent=False, icon_image=self._icons.get('cloud'))
         c2.grid(row=0, column=1, sticky='nsew', padx=(3, 3))
-        c3 = ui.action_card(cards_bar, '📁', 'Share Local Folder', 'Share files from this PC', self.share_folder, accent=False)
+        c3 = ui.action_card(cards_bar, '📁', 'Share Local Folder', 'Share files from this PC', self.share_folder, accent=False, icon_image=self._icons.get('share'))
         c3.grid(row=0, column=2, sticky='nsew', padx=(6, 0))
 
         # Saved & Connected Folders Section Header
@@ -134,9 +142,11 @@ class App:
         table_card = tk.Frame(main, bg='white', highlightbackground='#e2e8f0', highlightthickness=1)
         table_card.pack(fill='both', expand=True, pady=(0, 8))
         self.tree = ui.tree(table_card, columns=('kind', 'location', 'status', 'auto'), show='tree headings', selectmode='browse', height=8)
-        self.tree.heading('#0', text='Folder Name'); self.tree.column('#0', width=180)
-        for key, label, width in [('kind', 'Type', 110), ('location', 'Location or Path', 270), ('status', 'Status', 120), ('auto', 'On launch', 80)]:
-            self.tree.heading(key, text=label); self.tree.column(key, width=width)
+        self.tree.heading('#0', text='Folder Name'); self.tree.column('#0', width=250, minwidth=180, stretch=True)
+        self.tree.heading('kind', text='Type'); self.tree.column('kind', width=120, minwidth=100, stretch=False)
+        self.tree.heading('location', text='Location or Path'); self.tree.column('location', width=280, minwidth=200, stretch=True)
+        self.tree.heading('status', text='Status'); self.tree.column('status', width=130, minwidth=110, stretch=False)
+        self.tree.heading('auto', text='On launch'); self.tree.column('auto', width=80, minwidth=70, stretch=False)
         self.tree.bind('<Double-1>', lambda _: self.open())
         ui.buttons(layout.footer, [('Open folder', self.open), ('Connect', lambda: self.operation(True)), ('Disconnect', lambda: self.operation(False)), ('Forget folder', self.remove)], accent=('Open folder',), maximum=4)
 

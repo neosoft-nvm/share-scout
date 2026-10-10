@@ -63,9 +63,9 @@ class Layout:
         outer = ttk.Frame(window, padding=14); outer.pack(fill='both', expand=True)
         outer.columnconfigure(0, weight=1); outer.rowconfigure(0, weight=1)
         self.canvas = tk.Canvas(outer, highlightthickness=0, borderwidth=0, background='#f8fafc')
-        scroll = ttk.Scrollbar(outer, orient='vertical', command=self.canvas.yview)
-        self.canvas.configure(yscrollcommand=scroll.set)
-        self.canvas.grid(row=0, column=0, sticky='nsew'); scroll.grid(row=0, column=1, sticky='ns')
+        self.scroll = ttk.Scrollbar(outer, orient='vertical', command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.scroll.set)
+        self.canvas.grid(row=0, column=0, sticky='nsew')
         self.body = ttk.Frame(self.canvas, padding=(8, 4, 8, 10))
         self.slot = self.canvas.create_window(0, 0, window=self.body, anchor='nw')
         self.footer = ttk.Frame(outer, padding=(8, 10, 8, 0)); self.footer.grid(row=1, column=0, columnspan=2, sticky='ew')
@@ -95,9 +95,15 @@ class Layout:
         self.pending = False
         if not self.canvas.winfo_exists(): return
         width = max(1, self.canvas.winfo_width())
-        height = max(self.body.winfo_reqheight(), self.canvas.winfo_height())
+        req_h = self.body.winfo_reqheight()
+        canvas_h = self.canvas.winfo_height()
+        height = max(req_h, canvas_h)
         self.canvas.itemconfigure(self.slot, width=width, height=height)
         self.canvas.configure(scrollregion=(0, 0, width, height))
+        if req_h > canvas_h + 4:
+            self.scroll.grid(row=0, column=1, sticky='ns')
+        else:
+            self.scroll.grid_remove()
 
     def descendant(self, widget):
         while widget is not None:
@@ -159,9 +165,17 @@ def tree(parent, **kwargs):
     frame.pack(fill='both', expand=True)
     frame.columnconfigure(0, weight=1); frame.rowconfigure(0, weight=1)
     widget = ttk.Treeview(frame, **kwargs); widget.grid(row=0, column=0, sticky='nsew')
-    vertical = ttk.Scrollbar(frame, orient='vertical', command=widget.yview); vertical.grid(row=0, column=1, sticky='ns')
-    horizontal = ttk.Scrollbar(frame, orient='horizontal', command=widget.xview); horizontal.grid(row=1, column=0, sticky='ew')
-    widget.configure(yscrollcommand=vertical.set, xscrollcommand=horizontal.set)
+    vertical = ttk.Scrollbar(frame, orient='vertical', command=widget.yview)
+    horizontal = ttk.Scrollbar(frame, orient='horizontal', command=widget.xview)
+    def on_v(f, l):
+        if float(f) <= 0.0 and float(l) >= 1.0: vertical.grid_remove()
+        else: vertical.grid(row=0, column=1, sticky='ns')
+        vertical.set(f, l)
+    def on_h(f, l):
+        if float(f) <= 0.0 and float(l) >= 1.0: horizontal.grid_remove()
+        else: horizontal.grid(row=1, column=0, sticky='ew')
+        horizontal.set(f, l)
+    widget.configure(yscrollcommand=on_v, xscrollcommand=on_h)
     return widget
 
 
@@ -190,40 +204,43 @@ def apply_theme(root):
     style.configure('Subtitle.TLabel', foreground=text_subtle, font=('', 11))
     style.configure('Section.TLabel', foreground=text_dark, font=('', 13, 'bold'))
 
-    # Button styles
-    style.configure('TButton', background='#ffffff', foreground=text_dark, bordercolor=border_color, padding=(12, 7))
+    # Flat modern button styles
+    style.configure('TButton', background='#ffffff', foreground=text_dark, bordercolor=border_color, padding=(12, 7), relief='flat', borderwidth=1)
     style.map('TButton', background=[('active', '#f1f5f9'), ('disabled', '#f8fafc')],
-              foreground=[('disabled', '#94a3b8')], bordercolor=[('active', '#94a3b8')])
-    style.configure('Accent.TButton', background=primary, foreground='white', bordercolor=primary_hover, padding=(14, 8))
+              foreground=[('disabled', '#94a3b8')], bordercolor=[('active', primary)])
+    style.configure('Accent.TButton', background=primary, foreground='white', bordercolor=primary_hover, padding=(14, 8), relief='flat', borderwidth=0)
     style.map('Accent.TButton', background=[('active', primary_hover), ('disabled', '#cbd5e1')],
-              foreground=[('disabled', '#94a3b8')], bordercolor=[('active', primary_hover)])
-    style.configure('HeroAction.TButton', background='#ffffff', foreground=text_dark, bordercolor=border_light, padding=(16, 12))
+              foreground=[('disabled', '#94a3b8')])
+    style.configure('HeroAction.TButton', background='#ffffff', foreground=text_dark, bordercolor=border_light, padding=(16, 12), relief='flat', borderwidth=1)
     style.map('HeroAction.TButton', background=[('active', '#f1f5f9'), ('disabled', '#cbd5e1')],
               bordercolor=[('active', primary)])
-    style.configure('HeroActionAccent.TButton', background=primary, foreground='white', bordercolor=primary_hover, padding=(16, 12))
+    style.configure('HeroActionAccent.TButton', background=primary, foreground='white', bordercolor=primary_hover, padding=(16, 12), relief='flat', borderwidth=0)
     style.map('HeroActionAccent.TButton', background=[('active', primary_hover), ('disabled', '#cbd5e1')])
 
-    # Progress bar & inputs
+    # Progress bar & flat Treeview inputs
     style.configure('Horizontal.TProgressbar', background=primary, troughcolor=border_light,
                     bordercolor=border_light, lightcolor='#818cf8', darkcolor=primary_hover)
-    style.configure('Treeview', background='white', fieldbackground='white', foreground=text_dark, rowheight=34)
-    style.configure('Treeview.Heading', background='#f1f5f9', foreground='#334155', font=('', 10, 'bold'), padding=(6, 4))
+    style.configure('Treeview', background='white', fieldbackground='white', foreground=text_dark, rowheight=36, relief='flat', borderwidth=0)
+    style.configure('Treeview.Heading', background='#f8fafc', foreground='#334155', font=('', 10, 'bold'), padding=(8, 6), relief='flat', borderwidth=0)
     style.map('Treeview', background=[('selected', primary)], foreground=[('selected', 'white')])
-    style.map('Treeview.Heading', background=[('active', '#e2e8f0')])
+    style.map('Treeview.Heading', background=[('active', '#f1f5f9')], relief=[('active', 'flat'), ('pressed', 'flat')])
     style.configure('TCheckbutton', background=bg_color, foreground=text_dark)
     style.map('TCheckbutton', background=[('active', bg_color)])
     style.configure('TEntry', fieldbackground='white', foreground=text_dark)
 
 
-def action_card(parent, icon, title, subtitle, callback, accent=False):
+def action_card(parent, icon, title, subtitle, callback, accent=False, icon_image=None):
     bg_norm = '#ffffff'
     border_norm = '#c7d2fe' if accent else '#e2e8f0'
     bg_hover = '#f8fafc'
     border_hover = '#4f46e5'
     card = tk.Frame(parent, bg=bg_norm, highlightbackground=border_norm, highlightthickness=1, padx=14, pady=12, cursor='hand2')
-    icon_bg = '#e0e7ff' if accent else '#f1f5f9'
-    icon_fg = '#4338ca' if accent else '#334155'
-    icon_lbl = tk.Label(card, text=icon, font=('', 18), bg=icon_bg, fg=icon_fg, width=3, height=1, relief='flat')
+    if icon_image is not None:
+        icon_lbl = tk.Label(card, image=icon_image, bg=bg_norm)
+    else:
+        icon_bg = '#e0e7ff' if accent else '#f1f5f9'
+        icon_fg = '#4338ca' if accent else '#334155'
+        icon_lbl = tk.Label(card, text=str(icon), font=('', 18), bg=icon_bg, fg=icon_fg, width=3, height=1, relief='flat')
     icon_lbl.pack(pady=(0, 6))
     title_lbl = tk.Label(card, text=title, font=('', 11, 'bold'), bg=bg_norm, fg='#1e1b4b' if accent else '#0f172a')
     title_lbl.pack()
@@ -234,11 +251,15 @@ def action_card(parent, icon, title, subtitle, callback, accent=False):
         card.configure(bg=bg_hover, highlightbackground=border_hover)
         title_lbl.configure(bg=bg_hover)
         sub_lbl.configure(bg=bg_hover)
+        if icon_image is not None:
+            icon_lbl.configure(bg=bg_hover)
 
     def on_leave(_):
         card.configure(bg=bg_norm, highlightbackground=border_norm)
         title_lbl.configure(bg=bg_norm)
         sub_lbl.configure(bg=bg_norm)
+        if icon_image is not None:
+            icon_lbl.configure(bg=bg_norm)
 
     def on_click(_):
         callback()
