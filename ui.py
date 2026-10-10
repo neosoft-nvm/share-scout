@@ -53,8 +53,15 @@ def heading_font(window, preferred=22):
 
 
 def fit_window(window, width=900, height=600):
-    w, h = window_size(window.winfo_screenwidth(), window.winfo_screenheight(), width, height, window.winfo_fpixels('1i'))
-    window.geometry(f'{w}x{h}')
+    screen_w = window.winfo_screenwidth()
+    screen_h = window.winfo_screenheight()
+    dpi = window.winfo_fpixels('1i')
+    w, h = window_size(screen_w, screen_h, width, height, dpi)
+    w = min(w, 1080)
+    h = min(h, 720)
+    x = max(0, (screen_w - w) // 2)
+    y = max(0, (screen_h - h) // 2)
+    window.geometry(f'{w}x{h}+{x}+{y}')
     window.minsize(min(400, w), min(280, h))
 
 
@@ -113,7 +120,9 @@ class Layout:
         height = max(req_h, canvas_h)
         self.canvas.itemconfigure(self.slot, width=width, height=height)
         self.canvas.configure(scrollregion=(0, 0, width, height))
-        if req_h > canvas_h + 4:
+        if HAS_CTK:
+            self.scroll.grid_remove()
+        elif req_h > canvas_h + 30:
             self.scroll.grid(row=0, column=1, sticky='ns')
         else:
             self.scroll.grid_remove()
@@ -248,13 +257,19 @@ def action_card(parent, icon, title, subtitle, callback, accent=False, icon_imag
         border_hover = '#4f46e5'
         card = ctk.CTkFrame(parent, corner_radius=12, fg_color='#ffffff', border_width=1, border_color=border_norm, cursor='hand2')
         if icon_image is not None:
-            icon_lbl = tk.Label(card, image=icon_image, bg='#ffffff')
+            if isinstance(icon_image, ctk.CTkImage):
+                icon_lbl = ctk.CTkLabel(card, image=icon_image, text='')
+            elif hasattr(icon_image, 'resize'):
+                ctk_img = ctk.CTkImage(light_image=icon_image, dark_image=icon_image, size=(52, 52))
+                icon_lbl = ctk.CTkLabel(card, image=ctk_img, text='')
+            else:
+                icon_lbl = tk.Label(card, image=icon_image, bg='#ffffff')
         else:
             icon_lbl = ctk.CTkLabel(card, text=str(icon), font=ctk.CTkFont(size=24))
         icon_lbl.pack(pady=(12, 4))
         title_lbl = ctk.CTkLabel(card, text=title, font=ctk.CTkFont(size=13, weight='bold'), text_color='#1e1b4b' if accent else '#0f172a')
         title_lbl.pack()
-        sub_lbl = ctk.CTkLabel(card, text=subtitle, font=ctk.CTkFont(size=11), text_color='#64748b', wraplength=190)
+        sub_lbl = ctk.CTkLabel(card, text=subtitle, font=ctk.CTkFont(size=11), text_color='#64748b', wraplength=210)
         sub_lbl.pack(pady=(2, 10))
         btn_text = 'Scan Network' if 'Find' in title else ('Add Cloud Drive' if 'Cloud' in title else 'Share Folder')
         btn_fg = '#4f46e5' if accent else '#f1f5f9'

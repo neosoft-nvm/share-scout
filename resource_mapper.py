@@ -98,7 +98,7 @@ class App:
         ui.set_app_icon(root)
         style = ttk.Style()
         ui.apply_theme(root)
-        layout = ui.Layout(root, 940, 600)
+        layout = ui.Layout(root, 960, 660)
         main = layout.body
 
         # App header branding
@@ -121,8 +121,10 @@ class App:
         for name, fname in [('network', 'icon_network.png'), ('cloud', 'icon_cloud.png'), ('share', 'icon_share.png')]:
             fpath = Path(__file__).with_name(fname)
             if fpath.exists():
-                try: self._icons[name] = tk.PhotoImage(file=str(fpath))
-                except Exception: pass
+                try:
+                    self._icons[name] = tk.PhotoImage(file=str(fpath))
+                except Exception:
+                    pass
 
         # Hero Action Cards
         cards_bar = tk.Frame(main, bg='#f8fafc')
