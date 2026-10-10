@@ -1,10 +1,10 @@
-"""Responsive, asynchronous update check with platform-specific upgrade help."""
+"""Asynchronous update checks and one-click application upgrades."""
 import os
 import queue
+import shutil
 import threading
 import tkinter as tk
 from tkinter import ttk
-import webbrowser
 from app_info import VERSION, window_title
 import updates
 import ui
@@ -15,9 +15,10 @@ UPDATE_PREF = Path(os.getenv('LOCALAPPDATA', str(Path.home() / '.config'))) / 'R
 
 class UpdatePrompt:
     """Ask before showing the upgrade instructions; remember the opt-out."""
-    def __init__(self, root, result):
+    def __init__(self, root, result, on_upgrade=None):
         self.root = root
         self.result = result
+        self.on_upgrade = on_upgrade
         self.window = tk.Toplevel(root)
         self.window.title(window_title('Update available'))
         self.window.transient(root)
@@ -27,7 +28,7 @@ class UpdatePrompt:
         ui.label(body, text=f"Version {result['latest']} is available. You have {result['installed']}.").pack(anchor='w', pady=(10, 14))
         self.disable = tk.BooleanVar(value=False)
         ttk.Checkbutton(body, text='Don’t check for updates automatically', variable=self.disable).pack(anchor='w', pady=(0, 16))
-        ui.buttons(body, [('Not now', self.close), ('Show upgrade options', self.upgrade)], maximum=2)
+        ui.buttons(body, [('Not now', self.close), ('Upgrade now', self.upgrade)], accent=('Upgrade now',), maximum=2)
         self.window.protocol('WM_DELETE_WINDOW', self.close)
         self.window.grab_set()
 
@@ -41,30 +42,35 @@ class UpdatePrompt:
 
     def upgrade(self):
         self.close()
-        UpdateDialog(self.root, self.result)
+        UpdateDialog(self.root, self.result, self.on_upgrade, start_immediately=True)
 
 
 class UpdateDialog:
-    def __init__(self, root, result=None):
+    def __init__(self, root, result=None, on_upgrade=None, start_immediately=False):
         self.window = tk.Toplevel(root); self.window.title(window_title('Check for updates')); self.window.transient(root)
         self.events = queue.Queue(); self.busy = False
+        self.upgrading = False
+        self.on_upgrade = on_upgrade
+        self.result = result
         layout = ui.Layout(self.window, 670, 540); body = layout.body
         ui.label(body, text='Check for updates', font=ui.heading_font(self.window)).pack(fill='x')
         ui.label(body, text='Installed version: ' + VERSION).pack(fill='x', pady=(10, 4))
-        initial = (f"Update available: ShareScout {result['latest']}\nYou have {result['installed']}. Follow the upgrade instructions below."
+        initial = (f"Update available: ShareScout {result['latest']}\nYou have {result['installed']}."
                    if result and result.get('newer') else 'Checking the latest ShareScout version on GitHub…')
         self.status = tk.StringVar(value=initial)
         ui.label(body, textvariable=self.status).pack(fill='x', pady=12)
-        ui.label(body, text='This checks the version in the project’s main branch. Updates are installed when you choose to upgrade.').pack(fill='x', pady=8)
-        launcher = 'Launch-Windows.cmd' if os.name == 'nt' else 'bash Launch-Linux.sh'
-        ui.label(body, text='To upgrade a cloned repository, close ShareScout and run these commands in its folder:').pack(fill='x', pady=(12, 4))
-        commands = tk.Text(body, height=2, wrap='none', font='TkFixedFont')
-        commands.insert('1.0', 'git pull --ff-only\n' + launcher); commands.configure(state='disabled'); commands.pack(fill='x', pady=5)
-        ui.label(body, text='For a ZIP installation, download the latest source ZIP, extract it, and run the launcher. For a Debian package installation, install an updated package when available or build it from the updated repository.').pack(fill='x', pady=8)
-        buttons = ui.buttons(layout.footer, [('Close', self.window.destroy), ('Check again', self.check), ('Open GitHub', lambda: webbrowser.open(updates.REPOSITORY)), ('Download source ZIP', lambda: webbrowser.open(updates.SOURCE_ZIP))], maximum=2)
+        ui.label(body, text='Choose Upgrade and restart to download and install the update automatically. ShareScout will reopen when it’s ready.').pack(fill='x', pady=8)
+        buttons = ui.buttons(layout.footer, [('Close', self.close), ('Check again', self.check), ('Upgrade and restart', self.upgrade)], accent=('Upgrade and restart',), maximum=2)
         self.check_button = buttons[1]
+        self.upgrade_button = buttons[2]
+        self.close_button = buttons[0]
+        self.upgrade_button.configure(state='normal' if result and result.get('newer') else 'disabled')
+        self.window.protocol('WM_DELETE_WINDOW', self.close)
         self.window.after(100, self.poll)
-        if not result: self.check()
+        if start_immediately:
+            self.window.after(100, self.upgrade)
+        elif not result:
+            self.check()
 
     def check(self):
         if self.busy: return
@@ -75,12 +81,60 @@ class UpdateDialog:
             except Exception as exc: self.events.put(('error', str(exc)))
         threading.Thread(target=worker, daemon=True).start()
 
+    def upgrade(self):
+        if self.upgrading or not self.result or not self.result.get('newer'):
+            return
+        self.upgrading = True
+        self.check_button.configure(state='disabled')
+        self.upgrade_button.configure(state='disabled')
+        self.close_button.configure(state='disabled')
+        self.status.set(f"Downloading ShareScout {self.result['latest']}…")
+        def worker():
+            try: self.events.put(('stage', updates.stage_update(self.result['latest'])))
+            except Exception as exc: self.events.put(('upgrade-error', str(exc)))
+        threading.Thread(target=worker, daemon=True).start()
+
     def poll(self):
         if not self.window.winfo_exists(): return
         while not self.events.empty():
             kind, result = self.events.get(); self.busy = False; self.check_button.configure(state='normal')
-            if kind == 'error': self.status.set(result)
-            elif result['newer']: self.status.set(f"Update available: ShareScout {result['latest']}\nYou have {result['installed']}. Follow the upgrade instructions below.")
-            elif updates.version_tuple(result['latest']) == updates.version_tuple(result['installed']): self.status.set('You’re up to date: ShareScout ' + result['installed'])
-            else: self.status.set(f"Your version ({result['installed']}) is newer than GitHub’s main branch ({result['latest']}).")
-        self.window.after(150, self.poll)
+            if kind == 'stage':
+                self.status.set('Update downloaded. Closing ShareScout and installing…')
+                if self.on_upgrade:
+                    if not self.on_upgrade(result):
+                        shutil.rmtree(result, ignore_errors=True)
+                        self.upgrading = False
+                        self.status.set('Close active connections before upgrading, then try again.')
+                        self.close_button.configure(state='normal')
+                        self.check_button.configure(state='normal')
+                        self.upgrade_button.configure(state='normal')
+                else:
+                    shutil.rmtree(result, ignore_errors=True)
+                    self.status.set('Automatic installation is unavailable from this window. Please restart ShareScout and try again.')
+                    self.close_button.configure(state='normal')
+                    self.upgrade_button.configure(state='normal')
+            elif kind == 'upgrade-error':
+                self.upgrading = False
+                self.status.set(result)
+                self.close_button.configure(state='normal')
+                self.check_button.configure(state='normal')
+                self.upgrade_button.configure(state='normal')
+            elif kind == 'error': self.status.set(result)
+            else:
+                self.result = result
+                if result['newer']:
+                    self.status.set(f"Update available: ShareScout {result['latest']}\nYou have {result['installed']}.")
+                    self.upgrade_button.configure(state='normal')
+                elif updates.version_tuple(result['latest']) == updates.version_tuple(result['installed']):
+                    self.status.set('You’re up to date: ShareScout ' + result['installed'])
+                    self.upgrade_button.configure(state='disabled')
+                else:
+                    self.status.set(f"Your version ({result['installed']}) is newer than GitHub’s main branch ({result['latest']}).")
+                    self.upgrade_button.configure(state='disabled')
+        if self.window.winfo_exists(): self.window.after(150, self.poll)
+
+    def close(self):
+        if self.upgrading:
+            self.status.set('Please wait for the update to finish downloading.')
+            return
+        self.window.destroy()

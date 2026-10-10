@@ -1,4 +1,4 @@
-# ShareScout 0.5.0 — find, pick, connect
+# ShareScout 0.5.2 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
 
@@ -32,9 +32,9 @@ After setup, open **ShareScout** from your application menu. No terminal is need
 
 ## Check for updates
 
-ShareScout checks for a newer version in the background when it opens. If one is available, it asks whether you want to see the upgrade options. Check **Don’t check for updates automatically** in that prompt to turn off launch checks; you can still use **Check for updates** at any time. Offline checks stay quiet. The upgrade window links directly to the latest source ZIP and shows the short steps for cloned, ZIP, and Debian package installs. ShareScout never installs downloaded code without your choice.
+ShareScout checks for a newer version in the background when it opens. If one is available, choose **Upgrade now** to download, verify, install, and restart automatically—no terminal or manual file replacement. Check **Don’t check for updates automatically** in that prompt to turn off launch checks; you can still use **Check for updates** at any time. Offline checks stay quiet. Linux package installs are upgraded in your user account, without changing system files or asking for administrator access. ShareScout only installs an update after you choose to upgrade.
 
-For a clone, close ShareScout, run `git pull --ff-only` inside the repository, then run `bash Launch-Linux.sh` on Linux or `Launch-Windows.cmd` on Windows to update the installed copy. ZIP users can extract the latest source ZIP and rerun the launcher. Debian-package users need an updated package, or can build it from the updated repository.
+The updater installs into the standard per-user app folder and relaunches ShareScout. On Linux, it also updates the app-menu entry to use that copy, including when the previous install came from a Debian package. Your saved connections and credentials remain in their existing settings and system password stores.
 
 ## Sharing check during setup
 
@@ -138,6 +138,6 @@ Sharing setup references: [Samba testparm](https://devel.samba.org/samba/docs/4.
 
 Clone this repository and run `python3 -m unittest discover -s tests` from its root. No pip dependencies are required for the test suite; Python must include Tk. Linux runtime mounting also requires PyGObject/GIO and the system tools installed by the launch script.
 
-To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.5.0_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
+To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.5.2_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
 
 The existing ResourceMapper settings directory and package identifier are retained for compatibility with earlier builds. The application is now named ShareScout.

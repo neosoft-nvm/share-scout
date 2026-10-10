@@ -137,7 +137,7 @@ class App:
         if getattr(self, 'update_dialog', None) and self.update_dialog.window.winfo_exists():
             self.update_dialog.window.lift(); return
         from updates_ui import UpdateDialog
-        self.update_dialog = UpdateDialog(self.root)
+        self.update_dialog = UpdateDialog(self.root, on_upgrade=self.apply_update)
 
     def check_startup_update(self):
         try:
@@ -156,7 +156,21 @@ class App:
         if getattr(self, 'update_prompt', None) and self.update_prompt.winfo_exists():
             return
         from updates_ui import UpdatePrompt
-        self.update_prompt = UpdatePrompt(self.root, result)
+        self.update_prompt = UpdatePrompt(self.root, result, on_upgrade=self.apply_update)
+
+    def apply_update(self, stage):
+        helper = Path(__file__).with_name('apply_update.py')
+        flags = subprocess.CREATE_NO_WINDOW if WINDOWS else 0
+        process = subprocess.Popen(
+            [sys.executable, str(helper), str(os.getpid()), str(stage), sys.executable],
+            cwd=helper.parent, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, creationflags=flags, start_new_session=not WINDOWS,
+        )
+        if not self.close():
+            process.terminate()
+            shutil.rmtree(stage, ignore_errors=True)
+            return False
+        return True
 
     def share_folder(self):
         if WINDOWS:
@@ -419,11 +433,11 @@ class App:
 
     def close(self):
         if self.busy:
-            messagebox.showinfo('Please wait', 'Wait for the current connection operation to finish.'); return
+            messagebox.showinfo('Please wait', 'Wait for the current connection operation to finish.'); return False
         if any(p.poll() is None for p in self.processes.values()):
-            messagebox.showinfo('Cloud drives still connected', 'Disconnect cloud drives before closing so pending writes can finish.'); return
+            messagebox.showinfo('Cloud drives still connected', 'Disconnect cloud drives before closing so pending writes can finish.'); return False
         if self.folder_dialog and self.folder_dialog.result_file:
-            messagebox.showinfo('Setup is running', 'Finish or cancel folder sharing in its terminal before closing ShareScout.'); return
+            messagebox.showinfo('Setup is running', 'Finish or cancel folder sharing in its terminal before closing ShareScout.'); return False
         if self.cloud_dialog: self.cloud_dialog.close()
         if self.folder_dialog: self.folder_dialog.close()
         if self.finder: self.finder.close()
@@ -431,6 +445,7 @@ class App:
             self.sharing_dialog.done = None; self.sharing_dialog.close()
         self.credentials.clear()
         self.save(); self.root.destroy()
+        return True
 
 
 def main():

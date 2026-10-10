@@ -3,7 +3,10 @@ import io
 import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
+import zipfile
+import shutil
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parents[1]))
 import updates
@@ -40,6 +43,68 @@ class UpdateTests(unittest.TestCase):
     def test_large_or_malformed_response_is_reported(self):
         for payload in [b'x'*65537,b'not json',b'{"encoding":"unknown"}']:
             with patch.object(updates,'urlopen',return_value=io.BytesIO(payload)), self.assertRaises(RuntimeError): updates.check()
+
+    def test_update_archive_is_version_checked_and_staged_without_extracting_other_paths(self):
+        payload = io.BytesIO()
+        with zipfile.ZipFile(payload, 'w') as archive:
+            archive.writestr('share-scout-main/app_info.py', "VERSION = '0.5.2'\n")
+            for name in ('resource_mapper.py', 'updates.py', 'apply_update.py'):
+                archive.writestr('share-scout-main/' + name, '# test source\n')
+            archive.writestr('share-scout-main/sharescout.png', b'icon')
+            archive.writestr('share-scout-main/../../outside.py', 'must not escape')
+            archive.writestr('share-scout-main/tests/ignored.py', 'not installed')
+        with tempfile.TemporaryDirectory() as parent, \
+                patch.object(updates, 'install_root', return_value=Path(parent) / 'ResourceMapper'), \
+                patch.object(updates, 'urlopen', return_value=io.BytesIO(payload.getvalue())):
+            stage = updates.stage_update('0.5.2')
+            self.addCleanup(shutil.rmtree, stage, ignore_errors=True)
+            self.assertTrue((stage / 'resource_mapper.py').is_file())
+            self.assertTrue((stage / 'sharescout.png').is_file())
+            self.assertFalse((Path(parent) / 'outside.py').exists())
+            self.assertFalse((stage / 'ignored.py').exists())
+
+    def test_update_archive_version_must_match_checked_version(self):
+        payload = io.BytesIO()
+        with zipfile.ZipFile(payload, 'w') as archive:
+            for name, data in {
+                'app_info.py': "VERSION = '0.5.3'\n",
+                'resource_mapper.py': '', 'updates.py': '', 'apply_update.py': '',
+            }.items():
+                archive.writestr('share-scout-main/' + name, data)
+        with tempfile.TemporaryDirectory() as parent, \
+                patch.object(updates, 'install_root', return_value=Path(parent) / 'ResourceMapper'), \
+                patch.object(updates, 'urlopen', return_value=io.BytesIO(payload.getvalue())):
+            with self.assertRaisesRegex(RuntimeError, 'changed during download'):
+                updates.stage_update('0.5.2')
+
+    def test_update_archive_is_version_checked_and_staged_without_extracting_other_paths(self):
+        payload = io.BytesIO()
+        with zipfile.ZipFile(payload, 'w') as archive:
+            archive.writestr('share-scout-main/app_info.py', "VERSION = '0.5.2'\n")
+            for name in ('resource_mapper.py', 'updates.py', 'apply_update.py'):
+                archive.writestr('share-scout-main/' + name, '# safe test source\n')
+            archive.writestr('share-scout-main/sharescout.png', b'icon')
+            archive.writestr('share-scout-main/../../outside.py', 'must not escape')
+            archive.writestr('share-scout-main/tests/ignored.py', 'not installed')
+        with tempfile.TemporaryDirectory() as parent, patch.object(updates, 'install_root', return_value=Path(parent) / 'ResourceMapper'), patch.object(updates, 'urlopen', return_value=io.BytesIO(payload.getvalue())):
+            stage = updates.stage_update('0.5.2')
+            self.addCleanup(__import__('shutil').rmtree, stage, ignore_errors=True)
+            self.assertTrue((stage / 'resource_mapper.py').is_file())
+            self.assertTrue((stage / 'sharescout.png').is_file())
+            self.assertFalse((Path(parent) / 'outside.py').exists())
+            self.assertFalse((stage / 'ignored.py').exists())
+
+    def test_update_archive_version_must_match_checked_version(self):
+        payload = io.BytesIO()
+        with zipfile.ZipFile(payload, 'w') as archive:
+            for name, data in {
+                'app_info.py': "VERSION = '0.5.3'\n",
+                'resource_mapper.py': '', 'updates.py': '', 'apply_update.py': '',
+            }.items():
+                archive.writestr('share-scout-main/' + name, data)
+        with tempfile.TemporaryDirectory() as parent, patch.object(updates, 'install_root', return_value=Path(parent) / 'ResourceMapper'), patch.object(updates, 'urlopen', return_value=io.BytesIO(payload.getvalue())):
+            with self.assertRaisesRegex(RuntimeError, 'changed during download'):
+                updates.stage_update('0.5.2')
 
 
 if __name__ == '__main__': unittest.main()
