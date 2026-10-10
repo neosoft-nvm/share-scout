@@ -7,7 +7,7 @@
 
 ## Non-Negotiable Directives
 1. **Source Tree Integrity**: Work exclusively in repository root. `archive/` contains preserved historical artifacts and an unrelated legacy DriveConnect project; never treat `archive/` as active source.
-2. **Platform Scope**: Linux (smbclient/GIO/Samba) and Windows (Native NetShare/WinFsp/Credential Manager). Android is strictly **research-only** until explicitly authorized by the user.
+2. **Platform Scope**: Linux (Tauri/GIO/Samba), Windows (Tauri/NetUse/WinFsp), and Android (Capacitor 8 APK via GitHub Actions).
 3. **Display Targets**: Minimum test target is 1280x720 (720p); scaling-aware up to 4K (100%, 150%, 200%).
 4. **Testing Protocol**: Run `python3 -m unittest discover -s tests` before and after all changes. All tests must pass.
 5. **Release Milestone**: Bumping to `v0.6.0` to introduce professional visual redesign and flow upgrades.
