@@ -12,6 +12,7 @@
 4. **Testing Protocol**: Run `python3 -m unittest discover -s tests` before and after all changes. All tests must pass.
 5. **Release Milestone**: Bumping to `v0.6.0` to introduce professional visual redesign and flow upgrades.
 6. **Commitment & Delivery Integrity**: Never promise designs, features, or UI capabilities that cannot be delivered exactly as presented. Verify feasibility, rendering engines, and dependencies upfront before committing to deliverables.
+7. **Communication Standard**: Keep all responses short, concise, and directly to the point.
 
 ## Historical Versions & Rollback
 - Previous release `v0.5.3` is permanently pinned via git tag `v0.5.3` on GitHub (`57f0b91`).
