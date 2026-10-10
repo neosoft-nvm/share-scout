@@ -14,21 +14,49 @@ Discover and connect shared resources across PCs, network storage, and cloud ser
 
 The goal is a simple **scan → choose a device → choose a folder → connect** experience. Device type should not determine whether a compatible shared folder can be discovered. See [the roadmap](ROADMAP.md) for the planned Android scope.
 
-## First launch
+## Installation & Quick Start
 
-For Debian/Ubuntu desktops, the `.deb` package is the easiest option: open it in your software installer, install, then open **ShareScout** from the applications menu. The installer resolves the dependencies. This package has been structurally verified but has not been installed on a Debian/Ubuntu test machine.
+Choose your platform below for easy, one-step setup:
 
-For Windows or other Linux distributions, extract the ZIP first.
+### Linux (Debian, Ubuntu, Zorin, Linux Mint)
+- **Debian Package (`.deb`)**:
+  Download or build `resource-mapper_0.6.0_all.deb`, then install via your software center or terminal:
+  ```bash
+  sudo apt install ./dist/resource-mapper_0.6.0_all.deb
+  ```
+- **Automated Setup Script (Source / Git)**:
+  ```bash
+  git clone https://github.com/neosoft-nvm/share-scout.git
+  cd share-scout
+  bash Launch-Linux.sh
+  ```
+  *Installs required packages (`libglib2.0-bin`, `gvfs-backends`, `smbclient`, `rclone`), installs the application to `~/.local/share/ResourceMapper`, and adds **ShareScout** to your desktop application menu.*
 
-**Windows:** double-click **Launch-Windows.cmd**. Setup installs missing tools through winget and adds **ShareScout** to the Start menu. The computer may request administrator approval during installation. Run the app as your normal desktop user.
+### Linux (Fedora, Arch Linux, Other)
+```bash
+git clone https://github.com/neosoft-nvm/share-scout.git
+cd share-scout
+bash Launch-Linux.sh
+```
+*Auto-detects `dnf` or `pacman`, installs GIO/Samba/FUSE dependencies, and sets up your desktop application menu entry.*
 
-**Linux:** open **Start-Resource-Mapper** as a program. If your file manager opens scripts as text, run `bash Launch-Linux.sh` once in a terminal. Setup installs the required packages, copies the app into `~/.local/share/ResourceMapper`, and adds **ShareScout** to your applications menu. Supported setup package managers: Debian/Ubuntu apt, Fedora dnf, and Arch pacman. Installation may ask for your administrator password. An active desktop session is required.
+### Windows (10 & 11)
+1. Download or clone the repository:
+   ```cmd
+   git clone https://github.com/neosoft-nvm/share-scout.git
+   cd share-scout
+   ```
+2. Double-click **`Launch-Windows.cmd`** (or run `powershell -ExecutionPolicy Bypass -File Setup-Windows.ps1`).
+   *Automatically installs required tools (WinFsp, rclone) via winget and adds **ShareScout** to the Start menu.*
 
-Zorin/Ubuntu setup installs `libglib2.0-bin` for the `gio` command and `gvfs-backends` for SMB support. If an older download fails with “gvfs-bin has no installation candidate,” use the latest source or ZIP and rerun `bash Launch-Linux.sh`. Version 0.3.1 also fixes this dependency in the Debian package.
+### Quick Launch Without Setup
+If dependencies are already installed on your system:
+```bash
+python3 resource_mapper.py
+```
 
-Window title bars show the installed application version, including the sharing and discovery dialogs.
-
-After setup, open **ShareScout** from your application menu. No terminal is needed for network browsing or mapping. ShareScout allows one main session per user: launching it again requests that the existing window come forward. The OS releases the session lock after exit or a crash, so a stale lock file does not prevent restarting. Window activation uses an authenticated localhost connection; if activation fails, the second launch still does not start another session. Standalone file-manager sharing dialogs remain separate from the main session.
+### Launch Notes & Single Instance
+After setup, open **ShareScout** directly from your application menu or Start menu. No terminal is required. ShareScout enforces a single session per user: launching it again brings the existing active window forward.
 
 ## Check for updates
 

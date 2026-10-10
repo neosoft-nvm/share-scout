@@ -32,3 +32,8 @@
 - `ui.py`: Centralized design system (Slate/Indigo theme tokens, scaling math, responsive layouts).
 - `updates.py` / `updates_ui.py`: In-app GitHub update checker and seamless staging helper.
 - `app_info.py`: Canonical app name and SemVer declaration.
+
+## Installation & Execution Reference
+- Linux install/run: `bash Launch-Linux.sh` (or `python3 resource_mapper.py`)
+- Windows install/run: `Launch-Windows.cmd` (or `Setup-Windows.ps1`)
+- Build Debian package: `python3 scripts/build_deb.py`
