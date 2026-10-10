@@ -92,29 +92,24 @@ class App:
         root.title(window_title())
         ui.set_app_icon(root)
         style = ttk.Style()
-        style.theme_use('clam')
         ui.apply_theme(root)
-        style.configure('Treeview', rowheight=34)
-        style.configure('TButton', padding=(10, 7))
-        style.configure('Accent.TButton', background='#2563eb', foreground='white', padding=(14, 9))
-        style.map('Accent.TButton', background=[('active', '#1d4ed8'), ('disabled', '#cbd5e1')], foreground=[('disabled', '#64748b')])
-        layout = ui.Layout(root, 920, 570)
+        layout = ui.Layout(root, 940, 580)
         main = layout.body
         ui.label(main, text='A home for all your folders', font=ui.heading_font(root), style='Hero.TLabel').pack(fill='x')
-        ui.label(main, text='Find it. Connect it. Make yourself at home.', style='Subtitle.TLabel').pack(fill='x', pady=(8, 12))
-        bar = ttk.Frame(main); bar.pack(fill='x', pady=(0, 10))
+        ui.label(main, text='Find it. Connect it. Make yourself at home.', style='Subtitle.TLabel').pack(fill='x', pady=(6, 14))
+        bar = ttk.Frame(main); bar.pack(fill='x', pady=(0, 14))
         ui.buttons(bar, [('Find network folders', self.find), ('Connect cloud storage', self.sign_in),
                          ('Share a folder from this PC', self.share_folder)],
-                   accent=('Find network folders', 'Connect cloud storage'), maximum=3)
-        ui.label(main, text='Your folders', font=('', 14, 'bold')).pack(fill='x', pady=(8, 4))
+                   accent=('Find network folders', 'Connect cloud storage'), maximum=3, hero=True)
+        ui.label(main, text='Saved & Connected Folders', font=('', 13, 'bold'), style='Section.TLabel').pack(fill='x', pady=(10, 4))
         self.summary = tk.StringVar()
-        ui.label(main, textvariable=self.summary).pack(fill='x', pady=(0, 6))
+        ui.label(main, textvariable=self.summary, style='Muted.TLabel').pack(fill='x', pady=(0, 8))
         self.tree = ui.tree(main, columns=('kind', 'location', 'status', 'auto'), show='tree headings', selectmode='browse', height=8)
-        self.tree.heading('#0', text='Name'); self.tree.column('#0', width=160)
-        for key, label, width in [('kind', 'Type', 110), ('location', 'Location', 260), ('status', 'Status', 130), ('auto', 'On launch', 80)]:
+        self.tree.heading('#0', text='Folder Name'); self.tree.column('#0', width=180)
+        for key, label, width in [('kind', 'Type', 110), ('location', 'Location or Path', 270), ('status', 'Status', 120), ('auto', 'On launch', 80)]:
             self.tree.heading(key, text=label); self.tree.column(key, width=width)
         self.tree.bind('<Double-1>', lambda _: self.open())
-        ui.buttons(layout.footer, [('Connect', lambda: self.operation(True)), ('Disconnect', lambda: self.operation(False)), ('Open folder', self.open), ('Forget folder', self.remove)], accent=('Open folder',))
+        ui.buttons(layout.footer, [('Open folder', self.open), ('Connect', lambda: self.operation(True)), ('Disconnect', lambda: self.operation(False)), ('Forget folder', self.remove)], accent=('Open folder',), maximum=4)
         tools = ttk.LabelFrame(main, text='More ways to connect & help', padding=6); tools.pack(fill='x', pady=10)
         ui.buttons(tools, [('Add network address', self.add), ('Refresh connected folders', self.sync_connections),
                           ('Check required tools', self.check), ('Check for updates', self.check_updates),
@@ -237,9 +232,13 @@ class App:
         count = sum(item.get('status') == 'Connected' for item in self.items)
         if hasattr(self, 'summary'):
             self.summary.set(f'{count} connected · {len(self.items)} saved — select a folder, then Open folder.' if self.items else 'No folders yet. Find a network folder or connect your cloud to get started.')
-        self.tree.tag_configure('connected', foreground='#047857')
+        self.tree.tag_configure('connected', foreground='#15803d')
+        self.tree.tag_configure('connecting', foreground='#0284c7')
+        self.tree.tag_configure('disconnected', foreground='#64748b')
         for i, item in enumerate(self.items):
-            self.tree.item(str(i), tags=('connected',) if item.get('status') == 'Connected' else ())
+            status = item.get('status', 'Disconnected')
+            tag = 'connected' if status == 'Connected' else ('connecting' if 'Connect' in status else 'disconnected')
+            self.tree.item(str(i), tags=(tag,))
 
     def selected(self):
         selection = self.tree.selection()

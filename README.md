@@ -1,4 +1,4 @@
-# ShareScout 0.5.3 — find, pick, connect
+# ShareScout 0.6.0 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
 
@@ -138,6 +138,6 @@ Sharing setup references: [Samba testparm](https://devel.samba.org/samba/docs/4.
 
 Clone this repository and run `python3 -m unittest discover -s tests` from its root. No pip dependencies are required for the test suite; Python must include Tk. Linux runtime mounting also requires PyGObject/GIO and the system tools installed by the launch script.
 
-To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.5.3_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
+To build the Debian package, run `python3 scripts/build_deb.py`. The script requires `ar` (binutils) and `desktop-file-validate` (desktop-file-utils). It writes an independently inspected package to `dist/resource-mapper_0.6.0_all.deb`. Fedora users should use `bash Launch-Linux.sh`; an RPM build is not included.
 
 The existing ResourceMapper settings directory and package identifier are retained for compatibility with earlier builds. The application is now named ShareScout.

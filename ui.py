@@ -58,9 +58,11 @@ class Layout:
         fit_window(window, width, height)
         self.window = window
         window._sharescout_layout = self
+        try: window.configure(background='#f8fafc')
+        except Exception: pass
         outer = ttk.Frame(window, padding=14); outer.pack(fill='both', expand=True)
         outer.columnconfigure(0, weight=1); outer.rowconfigure(0, weight=1)
-        self.canvas = tk.Canvas(outer, highlightthickness=0, borderwidth=0, background='#f3f6fb')
+        self.canvas = tk.Canvas(outer, highlightthickness=0, borderwidth=0, background='#f8fafc')
         scroll = ttk.Scrollbar(outer, orient='vertical', command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=scroll.set)
         self.canvas.grid(row=0, column=0, sticky='nsew'); scroll.grid(row=0, column=1, sticky='ns')
@@ -130,10 +132,14 @@ def button_columns(width, requested_widths, maximum=4):
     return max(1, min(maximum, len(requested_widths), int(width / max(1, max(requested_widths, default=1) + 12))))
 
 
-def buttons(parent, actions, accent=(), maximum=4):
+def buttons(parent, actions, accent=(), maximum=4, hero=False):
     widgets = []
     for text, callback in actions:
-        widgets.append(ttk.Button(parent, text=text, command=callback, style='Accent.TButton' if text in accent else 'TButton'))
+        if hero:
+            style = 'HeroActionAccent.TButton' if text in accent else 'HeroAction.TButton'
+        else:
+            style = 'Accent.TButton' if text in accent else 'TButton'
+        widgets.append(ttk.Button(parent, text=text, command=callback, style=style))
     old_columns = 0
     def arrange(event=None):
         nonlocal old_columns
@@ -149,7 +155,8 @@ def buttons(parent, actions, accent=(), maximum=4):
 
 
 def tree(parent, **kwargs):
-    frame = ttk.Frame(parent); frame.pack(fill='both', expand=True)
+    frame = ttk.Frame(parent)
+    frame.pack(fill='both', expand=True)
     frame.columnconfigure(0, weight=1); frame.rowconfigure(0, weight=1)
     widget = ttk.Treeview(frame, **kwargs); widget.grid(row=0, column=0, sticky='nsew')
     vertical = ttk.Scrollbar(frame, orient='vertical', command=widget.yview); vertical.grid(row=0, column=1, sticky='ns')
@@ -160,13 +167,49 @@ def tree(parent, **kwargs):
 
 def apply_theme(root):
     style = ttk.Style(root)
-    style.configure('TFrame', background='#f3f6fb')
-    style.configure('TLabel', background='#f3f6fb', foreground='#24324b')
-    style.configure('TLabelframe', background='#f3f6fb')
-    style.configure('TLabelframe.Label', background='#f3f6fb', foreground='#475569')
-    style.configure('Hero.TLabel', foreground='#4338ca')
-    style.configure('Subtitle.TLabel', foreground='#64748b')
-    style.configure('Horizontal.TProgressbar', background='#0d9488', troughcolor='#dbe4f0',
-                    bordercolor='#dbe4f0', lightcolor='#14b8a6', darkcolor='#0f766e')
-    style.configure('Treeview', background='white', fieldbackground='white', foreground='#24324b')
-    style.map('Treeview', background=[('selected', '#4338ca')], foreground=[('selected', 'white')])
+    try:
+        style.theme_use('clam')
+    except tk.TclError:
+        pass
+    bg_color = '#f8fafc'
+    text_dark = '#0f172a'
+    text_muted = '#475569'
+    text_subtle = '#64748b'
+    border_color = '#cbd5e1'
+    border_light = '#e2e8f0'
+    primary = '#4f46e5'
+    primary_hover = '#4338ca'
+
+    style.configure('TFrame', background=bg_color)
+    style.configure('Card.TFrame', background='#ffffff')
+    style.configure('TLabel', background=bg_color, foreground=text_dark)
+    style.configure('Muted.TLabel', background=bg_color, foreground=text_subtle)
+    style.configure('TLabelframe', background=bg_color, bordercolor=border_light)
+    style.configure('TLabelframe.Label', background=bg_color, foreground=text_muted, font=('', 10, 'bold'))
+    style.configure('Hero.TLabel', foreground='#1e1b4b', font=('', 20, 'bold'))
+    style.configure('Subtitle.TLabel', foreground=text_subtle, font=('', 11))
+    style.configure('Section.TLabel', foreground=text_dark, font=('', 13, 'bold'))
+
+    # Button styles
+    style.configure('TButton', background='#ffffff', foreground=text_dark, bordercolor=border_color, padding=(12, 7))
+    style.map('TButton', background=[('active', '#f1f5f9'), ('disabled', '#f8fafc')],
+              foreground=[('disabled', '#94a3b8')], bordercolor=[('active', '#94a3b8')])
+    style.configure('Accent.TButton', background=primary, foreground='white', bordercolor=primary_hover, padding=(14, 8))
+    style.map('Accent.TButton', background=[('active', primary_hover), ('disabled', '#cbd5e1')],
+              foreground=[('disabled', '#94a3b8')], bordercolor=[('active', primary_hover)])
+    style.configure('HeroAction.TButton', background='#ffffff', foreground=text_dark, bordercolor=border_light, padding=(16, 12))
+    style.map('HeroAction.TButton', background=[('active', '#f1f5f9'), ('disabled', '#cbd5e1')],
+              bordercolor=[('active', primary)])
+    style.configure('HeroActionAccent.TButton', background=primary, foreground='white', bordercolor=primary_hover, padding=(16, 12))
+    style.map('HeroActionAccent.TButton', background=[('active', primary_hover), ('disabled', '#cbd5e1')])
+
+    # Progress bar & inputs
+    style.configure('Horizontal.TProgressbar', background=primary, troughcolor=border_light,
+                    bordercolor=border_light, lightcolor='#818cf8', darkcolor=primary_hover)
+    style.configure('Treeview', background='white', fieldbackground='white', foreground=text_dark, rowheight=34)
+    style.configure('Treeview.Heading', background='#f1f5f9', foreground='#334155', font=('', 10, 'bold'), padding=(6, 4))
+    style.map('Treeview', background=[('selected', primary)], foreground=[('selected', 'white')])
+    style.map('Treeview.Heading', background=[('active', '#e2e8f0')])
+    style.configure('TCheckbutton', background=bg_color, foreground=text_dark)
+    style.map('TCheckbutton', background=[('active', bg_color)])
+    style.configure('TEntry', fieldbackground='white', foreground=text_dark)

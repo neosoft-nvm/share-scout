@@ -14,18 +14,18 @@ def ask_credentials(parent, address, callback):
     dialog.title(window_title('Sign in to this device'))
     dialog.transient(parent); dialog.grab_set()
     layout = ui.Layout(dialog, 480, 410); frame = layout.body
-    ui.label(frame, text='Sign in to this device', font=ui.heading_font(dialog, 15)).pack(fill='x')
-    ui.label(frame, text=f'Device: {address}\nUse an account that can open folders on this device.').pack(fill='x', pady=8)
+    ui.label(frame, text='Sign in to this device', font=ui.heading_font(dialog, 16), style='Hero.TLabel').pack(fill='x')
+    ui.label(frame, text=f'Device: {address}\nUse an account that can open folders on this device.', style='Subtitle.TLabel').pack(fill='x', pady=(4, 10))
     values = {}
     for key, label in [('username', 'Username'), ('password', 'Password'), ('domain', 'Domain (optional — usually leave blank)')]:
-        ui.label(frame, text=label).pack(fill='x', pady=(5, 2))
+        ui.label(frame, text=label).pack(fill='x', pady=(6, 2))
         var = tk.StringVar(); values[key] = var
         field = ttk.Entry(frame, textvariable=var, show='•' if key == 'password' else '')
         field.pack(fill='x')
         if key == 'username': field.focus_set()
     remember = tk.BooleanVar(value=False)
-    ttk.Checkbutton(frame, text='Remember this password in the system password store', variable=remember).pack(anchor='w', pady=(6, 2))
-    ui.label(frame, text='Leave unchecked to use it for this session only.').pack(fill='x', pady=4)
+    ttk.Checkbutton(frame, text='Remember this password in the system password store', variable=remember).pack(anchor='w', pady=(10, 2))
+    ui.label(frame, text='Leave unchecked to use it for this session only.', style='Muted.TLabel').pack(fill='x', pady=2)
     def submit():
         if not values['username'].get().strip():
             messagebox.showinfo('Username', 'Enter your username.', parent=dialog); return
@@ -49,12 +49,12 @@ class Finder:
         self.window.transient(app.root)
         self.window.protocol('WM_DELETE_WINDOW', self.close)
         layout = ui.Layout(self.window, 870, 640); frame = layout.body
-        ui.label(frame, text='Find shared folders', font=ui.heading_font(self.window)).pack(fill='x')
-        ui.label(frame, text='Choose a device and folder, then Connect.').pack(fill='x', pady=(8, 16))
+        ui.label(frame, text='Find shared folders', font=ui.heading_font(self.window), style='Hero.TLabel').pack(fill='x')
+        ui.label(frame, text='Choose a device and folder, then Connect.', style='Subtitle.TLabel').pack(fill='x', pady=(4, 14))
         control = ttk.Frame(frame); control.pack(fill='x')
         self.scan_button = ui.buttons(control, [('Scan my network', self.start_scan), ('Stop scan', lambda: self.stop.set())], accent=('Scan my network',), maximum=2)[0]
         self.status = tk.StringVar(value='Looking for devices on your connected networks…')
-        ui.label(frame, textvariable=self.status, wraplength=800).pack(fill='x', pady=(10, 4))
+        ui.label(frame, textvariable=self.status, style='Muted.TLabel', wraplength=800).pack(fill='x', pady=(10, 4))
         self.progress = ttk.Progressbar(frame, maximum=100); self.progress.pack(fill='x', pady=(0, 12))
         lists = ttk.Frame(frame); lists.pack(fill='both', expand=True)
         left = ttk.Frame(lists); right = ttk.Frame(lists)
@@ -64,12 +64,12 @@ class Finder:
             left.grid(row=0, column=0, sticky='nsew', padx=(0, 0 if stacked else 12))
             right.grid(row=1 if stacked else 0, column=0 if stacked else 1, sticky='nsew')
         lists.bind('<Configure>', arrange_lists)
-        ui.label(left, text='Devices with file sharing', font=('', 12, 'bold')).pack(fill='x')
+        ui.label(left, text='Devices with file sharing', font=('', 12, 'bold'), style='Section.TLabel').pack(fill='x', pady=(0, 4))
         computer_list = ttk.Frame(left); computer_list.pack(fill='both', expand=True, pady=6)
         self.computers = ui.tree(computer_list, columns=('ip',), show='headings', selectmode='browse', height=8)
         self.computers.heading('ip', text='IP address')
         self.computers.bind('<<TreeviewSelect>>', self.choose_computer)
-        ui.label(right, text='Shared folders', font=('', 12, 'bold')).pack(fill='x')
+        ui.label(right, text='Shared folders', font=('', 12, 'bold'), style='Section.TLabel').pack(fill='x', pady=(0, 4))
         folder_list = ttk.Frame(right); folder_list.pack(fill='both', expand=True, pady=6)
         self.folders = ui.tree(folder_list, columns=('name', 'comment'), show='headings', selectmode='browse', height=8)
         self.folders.heading('name', text='Folder'); self.folders.heading('comment', text='Description')
