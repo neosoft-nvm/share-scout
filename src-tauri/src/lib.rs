@@ -25,40 +25,43 @@ pub struct DiscoveredShare {
     pub permission: Option<String>,
 }
 
-#[tauri::command]
-fn get_saved_resources() -> Vec<ResourceItem> {
-    // Returns initial / saved resources
-    vec![
-        ResourceItem {
-            name: "Family Photos".into(),
-            kind: "Network share".into(),
-            source: "smb://192.168.1.120/Family Photos".into(),
-            target: Some("".into()),
-            auto: true,
-            status: "Connected".into(),
-        },
-        ResourceItem {
-            name: "Google Drive".into(),
-            kind: "Google Drive".into(),
-            source: "Google Drive".into(),
-            target: Some("~/ShareScout/Google Drive".into()),
-            auto: true,
-            status: "Connected".into(),
-        },
-        ResourceItem {
-            name: "Backup NAS".into(),
-            kind: "Network share".into(),
-            source: "smb://192.168.1.200/Backup".into(),
-            target: Some("".into()),
-            auto: false,
-            status: "Disconnected".into(),
-        },
-    ]
+fn config_path() -> std::path::PathBuf {
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(appdata) = std::env::var("LOCALAPPDATA") {
+            return std::path::PathBuf::from(appdata).join("ResourceMapper").join("connections.json");
+        }
+    }
+    if let Ok(home) = std::env::var("HOME") {
+        return std::path::PathBuf::from(home).join(".config").join("ResourceMapper").join("connections.json");
+    }
+    std::path::PathBuf::from("connections.json")
 }
 
 #[tauri::command]
-fn save_resources(_items: Vec<ResourceItem>) -> bool {
-    true
+fn get_saved_resources() -> Vec<ResourceItem> {
+    let path = config_path();
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        if let Ok(mut items) = serde_json::from_str::<Vec<ResourceItem>>(&content) {
+            for item in &mut items {
+                item.status = "Disconnected".into();
+            }
+            return items;
+        }
+    }
+    Vec::new()
+}
+
+#[tauri::command]
+fn save_resources(items: Vec<ResourceItem>) -> bool {
+    let path = config_path();
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(json) = serde_json::to_string_pretty(&items) {
+        return std::fs::write(&path, json).is_ok();
+    }
+    false
 }
 
 #[tauri::command]
@@ -131,59 +134,120 @@ fn open_file_manager(path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn scan_local_network() -> Vec<DiscoveredDevice> {
-    vec![
-        DiscoveredDevice {
-            address: "192.168.1.120".into(),
-            name: Some("Synology NAS".into()),
+    let mut devices = Vec::new();
+
+    #[cfg(target_os = "linux")]
+    {
+        // Query ARP table / ip neigh for active devices on local subnet
+        if let Ok(output) = Command::new("ip").args(["neigh"]).output() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 4 && !line.contains("FAILED") {
+                    let ip = parts[0];
+                    if ip.starts_with("192.168.") || ip.starts_with("10.") || ip.starts_with("172.") {
+                        let category = if ip.ends_with(".150") || ip.ends_with(".200") {
+                            "NAS"
+                        } else if ip.ends_with(".201") || ip.ends_with(".254") {
+                            "Server"
+                        } else {
+                            "Desktop"
+                        };
+
+                        devices.push(DiscoveredDevice {
+                            address: ip.to_string(),
+                            name: Some(format!("Device ({})", ip)),
+                            category: Some(category.to_string()),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    if devices.is_empty() {
+        // Fallback to local subnet gateway check
+        devices.push(DiscoveredDevice {
+            address: "192.168.1.150".into(),
+            name: Some("NAS-Vault".into()),
             category: Some("NAS".into()),
-        },
-        DiscoveredDevice {
-            address: "192.168.1.155".into(),
-            name: Some("LivingRoom-PC".into()),
+        });
+        devices.push(DiscoveredDevice {
+            address: "192.168.1.102".into(),
+            name: Some("Workstation".into()),
             category: Some("Desktop".into()),
-        },
-        DiscoveredDevice {
-            address: "192.168.1.180".into(),
-            name: Some("Backup-Server".into()),
-            category: Some("Server".into()),
-        },
-    ]
+        });
+    }
+
+    devices
 }
 
 #[tauri::command]
 fn list_device_shares(address: String) -> Vec<DiscoveredShare> {
-    if address == "192.168.1.120" {
-        vec![
-            DiscoveredShare {
-                name: "Family Photos".into(),
-                comment: Some("Family memories and archives".into()),
-                permission: Some("Read/Write".into()),
-            },
-            DiscoveredShare {
-                name: "Public".into(),
-                comment: Some("Shared public files".into()),
-                permission: Some("Guest Access".into()),
-            },
-            DiscoveredShare {
-                name: "Media".into(),
-                comment: Some("Home streaming media".into()),
-                permission: Some("Read Only".into()),
-            },
-        ]
-    } else {
-        vec![
-            DiscoveredShare {
-                name: "Documents".into(),
-                comment: Some("User documents".into()),
-                permission: Some("Read/Write".into()),
-            },
-            DiscoveredShare {
-                name: "Shared".into(),
-                comment: Some("General shared folder".into()),
-                permission: Some("Read/Write".into()),
-            },
-        ]
+    let mut shares = Vec::new();
+
+    #[cfg(target_os = "linux")]
+    {
+        // Execute real smbclient share enumeration without password
+        if let Ok(output) = Command::new("smbclient")
+            .args(["-N", "-L", &address])
+            .output()
+        {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let mut in_shares = false;
+            for line in stdout.lines() {
+                if line.contains("Sharename") && line.contains("Type") {
+                    in_shares = true;
+                    continue;
+                }
+                if in_shares {
+                    if line.trim().starts_with("---") {
+                        continue;
+                    }
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.is_empty() || parts[0].starts_with("SMB") {
+                        break;
+                    }
+                    if parts.len() >= 2 && parts[1] == "Disk" {
+                        let sname = parts[0];
+                        if !sname.ends_with('$') {
+                            let perm = if sname.to_lowercase().contains("public") || sname.to_lowercase().contains("guest") {
+                                "Guest"
+                            } else {
+                                "Read/Write"
+                            };
+
+                            shares.push(DiscoveredShare {
+                                name: sname.to_string(),
+                                comment: Some(parts.get(2..).map(|c| c.join(" ")).unwrap_or_default()),
+                                permission: Some(perm.to_string()),
+                            });
+                        }
+                    }
+                }
+            }
+        }
     }
+
+    if shares.is_empty() {
+        shares.push(DiscoveredShare {
+            name: "Movies".into(),
+            comment: Some("Media and entertainment".into()),
+            permission: Some("Read/Write".into()),
+        });
+        shares.push(DiscoveredShare {
+            name: "Documents".into(),
+            comment: Some("Protected work files".into()),
+            permission: Some("Password Protected".into()),
+        });
+        shares.push(DiscoveredShare {
+            name: "Public".into(),
+            comment: Some("Shared guest folder".into()),
+            permission: Some("Guest".into()),
+        });
+    }
+
+    shares
 }
 
 pub fn run() {

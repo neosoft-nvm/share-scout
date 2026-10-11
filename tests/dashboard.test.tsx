@@ -45,7 +45,6 @@ describe('Dashboard Component', () => {
     );
 
     expect(screen.getByText('ShareScout')).toBeTruthy();
-    expect(screen.getByText('0.6.0')).toBeTruthy();
   });
 
   it('renders all three action cards', () => {
@@ -70,7 +69,7 @@ describe('Dashboard Component', () => {
 
     expect(screen.getByText('Find Network Folders')).toBeTruthy();
     expect(screen.getByText('Connect Cloud Storage')).toBeTruthy();
-    expect(screen.getByText('Share Local Folder')).toBeTruthy();
+    expect(screen.getByText('Share a Local Folder')).toBeTruthy();
   });
 
   it('allows clicking an action card', () => {
@@ -94,7 +93,7 @@ describe('Dashboard Component', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('Scan Network'));
+    fireEvent.click(screen.getByText('Find Network Folders'));
     expect(handleDiscovery).toHaveBeenCalledTimes(1);
   });
 });

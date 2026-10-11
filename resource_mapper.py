@@ -151,18 +151,38 @@ class App:
             import customtkinter as ctk
             table_card = ctk.CTkFrame(main, corner_radius=12, fg_color='#ffffff', border_width=1, border_color='#e2e8f0')
             table_card.pack(fill='both', expand=True, pady=(0, 8))
-            self.rows_box = ctk.CTkScrollableFrame(table_card, fg_color='transparent', height=240, scrollbar_button_color='#cbd5e1', scrollbar_button_hover_color='#94a3b8')
-            self.rows_box.pack(fill='both', expand=True, padx=8, pady=8)
+
+            # Table Header Row matching mockup columns: Folder Name, Type, Network Location or Path, Status, On-Launch
+            th_frame = ctk.CTkFrame(table_card, fg_color='#f8fafc', height=36, corner_radius=8)
+            th_frame.pack(fill='x', padx=6, pady=(6, 2))
+            th_frame.pack_propagate(False)
+
+            ctk.CTkLabel(th_frame, text='Folder Name', font=ctk.CTkFont(size=11, weight='bold'), text_color='#475569', anchor='w').pack(side='left', padx=(14, 0))
+            ctk.CTkLabel(th_frame, text='Type', font=ctk.CTkFont(size=11, weight='bold'), text_color='#475569', anchor='w', width=110).pack(side='left', padx=(130, 0))
+            ctk.CTkLabel(th_frame, text='Network Location or Path', font=ctk.CTkFont(size=11, weight='bold'), text_color='#475569', anchor='w').pack(side='left', padx=(20, 0))
+            ctk.CTkLabel(th_frame, text='On-Launch', font=ctk.CTkFont(size=11, weight='bold'), text_color='#475569', width=70).pack(side='right', padx=(0, 14))
+            ctk.CTkLabel(th_frame, text='Status', font=ctk.CTkFont(size=11, weight='bold'), text_color='#475569', width=95).pack(side='right', padx=(0, 20))
+
+            self.rows_box = ctk.CTkScrollableFrame(table_card, fg_color='transparent', height=230, scrollbar_button_color='#cbd5e1', scrollbar_button_hover_color='#94a3b8')
+            self.rows_box.pack(fill='both', expand=True, padx=6, pady=(0, 6))
             self._hidden_tree_frame = tk.Frame(root)
             self.tree = ui.tree(self._hidden_tree_frame, columns=('kind', 'location', 'status', 'auto'), show='tree headings', selectmode='browse', height=1)
-            open_btn = ctk.CTkButton(layout.footer, text='Open in File Manager', corner_radius=8, fg_color='#4f46e5', hover_color='#4338ca', font=ctk.CTkFont(size=13, weight='bold'), height=36, command=self.open)
-            open_btn.pack(side='left', padx=(0, 8))
-            conn_btn = ctk.CTkButton(layout.footer, text='Connect', corner_radius=8, fg_color='#ffffff', hover_color='#f1f5f9', text_color='#0f172a', border_width=1, border_color='#cbd5e1', font=ctk.CTkFont(size=13), height=36, command=lambda: self.operation(True))
+
+            # Footer: Actions on Left
+            open_btn = ctk.CTkButton(layout.footer, text='Open in File Manager', corner_radius=8, fg_color='#4f46e5', hover_color='#4338ca', font=ctk.CTkFont(size=12, weight='bold'), height=36, command=self.open)
+            open_btn.pack(side='left', padx=(0, 6))
+            conn_btn = ctk.CTkButton(layout.footer, text='Connect', corner_radius=8, fg_color='#ffffff', hover_color='#f1f5f9', text_color='#0f172a', border_width=1, border_color='#cbd5e1', font=ctk.CTkFont(size=12), height=36, command=lambda: self.operation(True))
             conn_btn.pack(side='left', padx=4)
-            disc_btn = ctk.CTkButton(layout.footer, text='Disconnect', corner_radius=8, fg_color='#ffffff', hover_color='#f1f5f9', text_color='#0f172a', border_width=1, border_color='#cbd5e1', font=ctk.CTkFont(size=13), height=36, command=lambda: self.operation(False))
+            disc_btn = ctk.CTkButton(layout.footer, text='Disconnect', corner_radius=8, fg_color='#ffffff', hover_color='#f1f5f9', text_color='#0f172a', border_width=1, border_color='#cbd5e1', font=ctk.CTkFont(size=12), height=36, command=lambda: self.operation(False))
             disc_btn.pack(side='left', padx=4)
-            rem_btn = ctk.CTkButton(layout.footer, text='Remove', corner_radius=8, fg_color='#ffffff', hover_color='#fee2e2', text_color='#b91c1c', border_width=1, border_color='#fecaca', font=ctk.CTkFont(size=13), height=36, command=self.remove)
+            rem_btn = ctk.CTkButton(layout.footer, text='Remove', corner_radius=8, fg_color='#ffffff', hover_color='#fee2e2', text_color='#b91c1c', border_width=1, border_color='#fecaca', font=ctk.CTkFont(size=12), height=36, command=self.remove)
             rem_btn.pack(side='left', padx=4)
+
+            # Footer: Links on Right matching mockup (Manual Network Address, Sharing Diagnostics)
+            diag_link = ctk.CTkButton(layout.footer, text='Sharing Diagnostics', fg_color='transparent', hover_color='#f1f5f9', text_color='#475569', font=ctk.CTkFont(size=11, underline=True), height=36, command=lambda: self.sharing(force=True))
+            diag_link.pack(side='right', padx=(4, 0))
+            manual_link = ctk.CTkButton(layout.footer, text='Manual Network Address', fg_color='transparent', hover_color='#f1f5f9', text_color='#475569', font=ctk.CTkFont(size=11, underline=True), height=36, command=self.add)
+            manual_link.pack(side='right', padx=(0, 4))
         else:
             table_card = tk.Frame(main, bg='white', highlightbackground='#e2e8f0', highlightthickness=1)
             table_card.pack(fill='both', expand=True, pady=(0, 8))
@@ -347,20 +367,39 @@ class App:
         for i, item in enumerate(self.items):
             is_sel = (sel_idx == i)
             row_bg = '#eef2ff' if is_sel else '#ffffff'
-            row_border = '#4f46e5' if is_sel else '#f1f5f9'
-            row = ctk.CTkFrame(self.rows_box, corner_radius=8, fg_color=row_bg, border_width=1, border_color=row_border, height=54, cursor='hand2')
-            row.pack(fill='x', padx=4, pady=4)
+            row_border = '#4f46e5' if is_sel else '#e2e8f0'
+            row = ctk.CTkFrame(self.rows_box, corner_radius=8, fg_color=row_bg, border_width=1, border_color=row_border, height=44, cursor='hand2')
+            row.pack(fill='x', padx=4, pady=2)
             row.pack_propagate(False)
 
-            icon_str = '📁' if item.get('kind') == 'Network share' else '☁'
-            ctk.CTkLabel(row, text=icon_str, font=ctk.CTkFont(size=16), width=32).pack(side='left', padx=(10, 4))
+            # Folder Name
+            name_lbl = ctk.CTkLabel(row, text=item.get('name', 'Folder'), font=ctk.CTkFont(size=12, weight='bold'), text_color='#0f172a', anchor='w', width=180)
+            name_lbl.pack(side='left', padx=(12, 4))
 
-            info = ctk.CTkFrame(row, fg_color='transparent')
-            info.pack(side='left', fill='y', padx=4)
-            ctk.CTkLabel(info, text=item.get('name', 'Folder'), font=ctk.CTkFont(size=13, weight='bold'), text_color='#0f172a', anchor='w').pack(anchor='w', pady=(4, 0))
+            # Type (SMB, Google Drive, OneDrive)
+            kind = item.get('kind', 'Network share')
+            if 'Google' in kind or 'google' in item.get('source', ''):
+                type_icon, type_text = '📁', 'Google Drive'
+            elif 'One' in kind or 'onedrive' in item.get('source', ''):
+                type_icon, type_text = '☁', 'OneDrive'
+            else:
+                type_icon, type_text = '🖥️', 'SMB'
+
+            type_box = ctk.CTkFrame(row, fg_color='transparent', width=120)
+            type_box.pack(side='left', padx=4)
+            type_box.pack_propagate(False)
+            ctk.CTkLabel(type_box, text=f'{type_icon} {type_text}', font=ctk.CTkFont(size=11), text_color='#334155', anchor='w').pack(side='left')
+
+            # Network Location or Path
             loc = item.get('target') or item.get('source') or ''
-            ctk.CTkLabel(info, text=loc, font=ctk.CTkFont(size=11), text_color='#64748b', anchor='w').pack(anchor='w', pady=(0, 4))
+            loc_lbl = ctk.CTkLabel(row, text=loc, font=ctk.CTkFont(size=11), text_color='#64748b', anchor='w')
+            loc_lbl.pack(side='left', fill='x', expand=True, padx=8)
 
+            # On-Launch indicator (rightmost)
+            on_launch_text = 'On' if item.get('auto') else 'Off'
+            ctk.CTkLabel(row, text=on_launch_text, font=ctk.CTkFont(size=11), text_color='#334155', width=60).pack(side='right', padx=(0, 10))
+
+            # Status Pill Badge
             status = item.get('status', 'Disconnected')
             if status == 'Connected':
                 badge_bg, badge_fg = '#dcfce7', '#15803d'
@@ -369,18 +408,15 @@ class App:
             else:
                 badge_bg, badge_fg = '#f1f5f9', '#64748b'
 
-            pill = ctk.CTkLabel(row, text=status, corner_radius=10, fg_color=badge_bg, text_color=badge_fg, font=ctk.CTkFont(size=11, weight='bold'), width=96, height=24)
-            pill.pack(side='right', padx=14)
-
-            kind_lbl = ctk.CTkLabel(row, text=item.get('kind', ''), font=ctk.CTkFont(size=11), text_color='#475569')
-            kind_lbl.pack(side='right', padx=10)
+            pill = ctk.CTkLabel(row, text=status, corner_radius=12, fg_color=badge_bg, text_color=badge_fg, font=ctk.CTkFont(size=11, weight='bold'), width=90, height=22)
+            pill.pack(side='right', padx=(4, 16))
 
             def make_handler(idx):
                 return lambda _: self.select_item(idx)
 
             row.bind('<Button-1>', make_handler(i))
             row.bind('<Double-1>', lambda _: self.open())
-            for child in row.winfo_children():
+            for child in (name_lbl, type_box, loc_lbl, pill):
                 child.bind('<Button-1>', make_handler(i))
                 child.bind('<Double-1>', lambda _: self.open())
 

@@ -17,5 +17,5 @@ export interface DiscoveredDevice {
 export interface DiscoveredShare {
   name: string;
   comment?: string;
-  permission?: 'Read/Write' | 'Read Only' | 'Guest Access';
+  permission?: 'Read/Write' | 'Read Only' | 'Guest Access' | 'Password Protected' | 'Guest';
 }

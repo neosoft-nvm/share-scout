@@ -264,29 +264,23 @@ def action_card(parent, icon, title, subtitle, callback, accent=False, icon_imag
             if isinstance(icon_image, ctk.CTkImage):
                 icon_lbl = ctk.CTkLabel(card, image=icon_image, text='')
             elif hasattr(icon_image, 'resize'):
-                ctk_img = ctk.CTkImage(light_image=icon_image, dark_image=icon_image, size=(52, 52))
+                ctk_img = ctk.CTkImage(light_image=icon_image, dark_image=icon_image, size=(48, 48))
                 icon_lbl = ctk.CTkLabel(card, image=ctk_img, text='')
             else:
                 icon_lbl = tk.Label(card, image=icon_image, bg='#ffffff')
         else:
-            icon_lbl = ctk.CTkLabel(card, text=str(icon), font=ctk.CTkFont(size=24))
-        icon_lbl.pack(pady=(12, 4))
-        title_lbl = ctk.CTkLabel(card, text=title, font=ctk.CTkFont(size=13, weight='bold'), text_color='#1e1b4b' if accent else '#0f172a')
+            icon_lbl = ctk.CTkLabel(card, text=str(icon), font=ctk.CTkFont(size=28))
+        icon_lbl.pack(pady=(18, 8))
+        title_lbl = ctk.CTkLabel(card, text=title, font=ctk.CTkFont(size=14, weight='bold'), text_color='#1e1b4b' if accent else '#0f172a')
         title_lbl.pack()
-        sub_lbl = ctk.CTkLabel(card, text=subtitle, font=ctk.CTkFont(size=11), text_color='#64748b', wraplength=210)
-        sub_lbl.pack(pady=(2, 10))
-        btn_text = 'Scan Network' if 'Find' in title else ('Add Cloud Drive' if 'Cloud' in title else 'Share Folder')
-        btn_fg = '#4f46e5' if accent else '#f1f5f9'
-        btn_hover = '#4338ca' if accent else '#e2e8f0'
-        btn_tc = '#ffffff' if accent else '#0f172a'
-        action_btn = ctk.CTkButton(card, text=btn_text, corner_radius=8, fg_color=btn_fg, hover_color=btn_hover, text_color=btn_tc, font=ctk.CTkFont(size=12, weight='bold'), height=32, command=callback)
-        action_btn.pack(pady=(0, 10), padx=16, fill='x')
+        sub_lbl = ctk.CTkLabel(card, text=subtitle, font=ctk.CTkFont(size=11), text_color='#64748b', wraplength=220)
+        sub_lbl.pack(pady=(4, 18))
 
         def on_enter(_):
-            card.configure(border_color=border_hover)
+            card.configure(border_color=border_hover, fg_color='#fbfcfe')
 
         def on_leave(_):
-            card.configure(border_color=border_norm)
+            card.configure(border_color=border_norm, fg_color='#ffffff')
 
         def on_click(_):
             callback()

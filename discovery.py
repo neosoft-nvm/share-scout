@@ -177,10 +177,6 @@ class Finder:
             self.devices_frame = ctk.CTkScrollableFrame(left_col, fg_color='#ffffff', border_width=1, border_color='#e2e8f0', corner_radius=10)
             self.devices_frame.grid(row=1, column=0, sticky='nsew')
 
-            left_ftr = ctk.CTkFrame(left_col, fg_color='transparent')
-            left_ftr.grid(row=2, column=0, sticky='ew', pady=(6, 0))
-            self.sign_button = ctk.CTkButton(left_ftr, text='Need credentials? Sign In', fg_color='transparent', hover_color='#eef2ff', text_color='#4f46e5', font=ctk.CTkFont(size=11, underline=True), height=26, command=self.sign_in)
-            self.sign_button.pack(side='left')
 
             # Right Column: Shared Folders
             right_col = ctk.CTkFrame(split_frame, fg_color='transparent')
@@ -198,37 +194,41 @@ class Finder:
             self.folders_frame = ctk.CTkScrollableFrame(right_col, fg_color='#ffffff', border_width=1, border_color='#e2e8f0', corner_radius=10)
             self.folders_frame.grid(row=1, column=0, sticky='nsew')
 
-            # 3. Bottom Action Dock
+            # 3. Bottom Action Dock matching mockup:
+            # Left: "Need credentials? Sign In" (or Reconnect option)
+            # Right: "Connect Selected Folder" | "Cancel" | "Manual IP"
             dock = ctk.CTkFrame(main_container, fg_color='#ffffff', corner_radius=10, border_width=1, border_color='#e2e8f0')
             dock.pack(fill='x')
 
             dock_inner = ctk.CTkFrame(dock, fg_color='transparent')
-            dock_inner.pack(fill='x', padx=14, pady=10)
+            dock_inner.pack(fill='x', padx=16, pady=10)
 
             self.auto = tk.BooleanVar(value=True)
-            ctk.CTkCheckBox(
-                dock_inner, text='Reconnect when this app opens', variable=self.auto,
-                font=ctk.CTkFont(size=12), text_color='#334155', fg_color='#4f46e5', hover_color='#4338ca'
-            ).pack(side='left')
 
-            self.connect_btn = ctk.CTkButton(
-                dock_inner, text='Connect Selected Folder', height=36, corner_radius=8,
-                fg_color='#4f46e5', hover_color='#4338ca', text_color='#ffffff',
-                font=ctk.CTkFont(size=13, weight='bold'), state='disabled', command=self.connect
-            )
-            self.connect_btn.pack(side='right', padx=(6, 0))
+            left_dock_box = ctk.CTkFrame(dock_inner, fg_color='transparent')
+            left_dock_box.pack(side='left')
+
+            self.sign_button = ctk.CTkButton(left_dock_box, text='Need credentials? Sign In', fg_color='transparent', hover_color='#eef2ff', text_color='#4f46e5', font=ctk.CTkFont(size=12, underline=True), height=28, command=self.sign_in)
+            self.sign_button.pack(side='left')
 
             ctk.CTkButton(
-                dock_inner, text='Cancel', width=80, height=36, corner_radius=8,
-                fg_color='#ffffff', hover_color='#f1f5f9', text_color='#475569',
-                border_width=1, border_color='#cbd5e1', font=ctk.CTkFont(size=12), command=self.close
+                dock_inner, text='Manual IP', width=90, height=34, corner_radius=8,
+                fg_color='#ffffff', hover_color='#f1f5f9', text_color='#0f172a',
+                border_width=1, border_color='#cbd5e1', font=ctk.CTkFont(size=12), command=self.direct_dialog
             ).pack(side='right', padx=(6, 0))
 
             ctk.CTkButton(
-                dock_inner, text='Manual IP', width=95, height=36, corner_radius=8,
-                fg_color='#ffffff', hover_color='#f1f5f9', text_color='#4f46e5',
-                border_width=1, border_color='#c7d2fe', font=ctk.CTkFont(size=12, weight='bold'), command=self.direct_dialog
-            ).pack(side='right')
+                dock_inner, text='Cancel', width=76, height=34, corner_radius=8,
+                fg_color='#ffffff', hover_color='#f1f5f9', text_color='#0f172a',
+                border_width=1, border_color='#cbd5e1', font=ctk.CTkFont(size=12), command=self.close
+            ).pack(side='right', padx=(6, 0))
+
+            self.connect_btn = ctk.CTkButton(
+                dock_inner, text='Connect Selected Folder', height=34, corner_radius=8,
+                fg_color='#4f46e5', hover_color='#4338ca', text_color='#ffffff',
+                font=ctk.CTkFont(size=12, weight='bold'), state='disabled', command=self.connect
+            )
+            self.connect_btn.pack(side='right')
 
             # Compatibility wrappers for tests and legacy access
             self.scan_button = self.rescan_btn
