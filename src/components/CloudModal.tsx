@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Cloud, ExternalLink } from 'lucide-react';
 import { Modal } from './Modal';
+import { GoogleDriveSmallIcon, OneDriveSmallIcon } from './BrandIcons';
+import { launchCloudSignIn } from '../services/api';
 
 interface CloudModalProps {
   isOpen: boolean;
@@ -14,17 +15,17 @@ export const CloudModal: React.FC<CloudModalProps> = ({
   onAddCloudAccount,
 }) => {
   const [provider, setProvider] = useState<'Google Drive' | 'OneDrive'>('Google Drive');
-  const [accountName, setAccountName] = useState('Personal Drive');
+  const [mountPath, setMountPath] = useState('~/ShareScout/Google Drive');
+  const [driveName, setDriveName] = useState('Google Drive');
   const [connecting, setConnecting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setConnecting(true);
-    setTimeout(() => {
-      onAddCloudAccount(provider, accountName);
-      setConnecting(false);
-      onClose();
-    }, 800);
+    await launchCloudSignIn(provider);
+    onAddCloudAccount(provider, driveName);
+    setConnecting(false);
+    onClose();
   };
 
   return (
@@ -32,79 +33,93 @@ export const CloudModal: React.FC<CloudModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Connect Cloud Storage"
-      subtitle="Sign in securely via your web browser"
-      maxWidth="max-w-md"
+      subtitle="Mount Google Drive or Microsoft OneDrive directly to your desktop"
+      maxWidth="max-w-lg"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Provider selection */}
-        <div className="grid grid-cols-2 gap-3">
+      <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+        {/* Two large selectable provider cards matching mockup */}
+        <div className="grid grid-cols-2 gap-4">
           <button
             type="button"
             onClick={() => {
               setProvider('Google Drive');
-              setAccountName('Google Drive');
+              setDriveName('Google Drive');
+              setMountPath('~/ShareScout/Google Drive');
             }}
-            className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
+            className={`p-6 rounded-2xl border flex flex-col items-center justify-center gap-3 transition-all cursor-pointer ${
               provider === 'Google Drive'
-                ? 'bg-indigo-50/60 border-indigo-500 ring-1 ring-indigo-500 text-indigo-900'
-                : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                ? 'bg-indigo-50/50 border-indigo-400 ring-2 ring-indigo-400'
+                : 'bg-white border-slate-200 hover:border-slate-300'
             }`}
           >
-            <Cloud className="w-6 h-6 text-indigo-600" />
-            <span className="text-xs font-bold">Google Drive</span>
+            <div className="w-12 h-12 flex items-center justify-center">
+              <GoogleDriveSmallIcon className="w-10 h-10" />
+            </div>
+            <span className="text-sm font-bold text-slate-900">Google Drive</span>
           </button>
 
           <button
             type="button"
             onClick={() => {
               setProvider('OneDrive');
-              setAccountName('OneDrive');
+              setDriveName('OneDrive');
+              setMountPath('~/ShareScout/OneDrive');
             }}
-            className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
+            className={`p-6 rounded-2xl border flex flex-col items-center justify-center gap-3 transition-all cursor-pointer ${
               provider === 'OneDrive'
-                ? 'bg-indigo-50/60 border-indigo-500 ring-1 ring-indigo-500 text-indigo-900'
-                : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                ? 'bg-indigo-50/50 border-indigo-400 ring-2 ring-indigo-400'
+                : 'bg-white border-slate-200 hover:border-slate-300'
             }`}
           >
-            <Cloud className="w-6 h-6 text-sky-600" />
-            <span className="text-xs font-bold">Microsoft OneDrive</span>
+            <div className="w-12 h-12 flex items-center justify-center">
+              <OneDriveSmallIcon className="w-10 h-10" />
+            </div>
+            <span className="text-sm font-bold text-slate-900">Microsoft OneDrive</span>
           </button>
         </div>
 
+        {/* Inputs matching mockup */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-            Drive Friendly Name
+            Mount folder path
           </label>
           <input
             type="text"
             required
-            value={accountName}
-            onChange={(e) => setAccountName(e.target.value)}
-            className="w-full text-xs py-2 px-3 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            value={mountPath}
+            onChange={(e) => setMountPath(e.target.value)}
+            className="w-full text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
 
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500 leading-relaxed flex items-start gap-2">
-          <ExternalLink className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-          <span>
-            Clicking connect will launch your browser for direct OAuth authorization. No passwords are stored.
-          </span>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            Drive Letter / Folder name
+          </label>
+          <input
+            type="text"
+            required
+            value={driveName}
+            onChange={(e) => setDriveName(e.target.value)}
+            className="w-full text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="py-2 px-3.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100"
-          >
-            Cancel
-          </button>
+        {/* Footer dock matching mockup */}
+        <div className="flex justify-center gap-3 pt-3">
           <button
             type="submit"
             disabled={connecting}
-            className="py-2 px-4 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+            className="py-2.5 px-6 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
           >
-            {connecting ? 'Launching browser...' : 'Connect in Browser'}
+            {connecting ? 'Connecting...' : 'Connect Account'}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="py-2.5 px-5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+          >
+            Cancel
           </button>
         </div>
       </form>

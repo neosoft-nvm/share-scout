@@ -12,6 +12,7 @@ import { Discovery } from './screens/Discovery';
 import { CloudModal } from './components/CloudModal';
 import { ManualAddressModal } from './components/ManualAddressModal';
 import { ShareFolderModal } from './components/ShareFolderModal';
+import { DiagnosticsModal } from './components/DiagnosticsModal';
 
 export const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<'dashboard' | 'discovery'>('dashboard');
@@ -22,6 +23,7 @@ export const App: React.FC = () => {
   const [isCloudOpen, setIsCloudOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isShareFolderOpen, setIsShareFolderOpen] = useState(false);
+  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
 
   useEffect(() => {
     loadResources().then((items) => {
@@ -162,7 +164,7 @@ export const App: React.FC = () => {
           onOpenShareFolder={() => setIsShareFolderOpen(true)}
           onOpenManualAddress={() => setIsManualOpen(true)}
           onRefreshConnections={() => loadResources().then(setResources)}
-          onCheckTools={() => alert('All required tools (smbclient, gio, rclone, FUSE) are installed and ready.')}
+          onCheckTools={() => setIsDiagnosticsOpen(true)}
           onCheckUpdates={() => alert('ShareScout v0.6.0 is up to date.')}
         />
       ) : (
@@ -188,6 +190,11 @@ export const App: React.FC = () => {
       <ShareFolderModal
         isOpen={isShareFolderOpen}
         onClose={() => setIsShareFolderOpen(false)}
+      />
+
+      <DiagnosticsModal
+        isOpen={isDiagnosticsOpen}
+        onClose={() => setIsDiagnosticsOpen(false)}
       />
     </>
   );

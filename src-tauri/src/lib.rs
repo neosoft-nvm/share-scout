@@ -250,6 +250,110 @@ fn list_device_shares(address: String) -> Vec<DiscoveredShare> {
     shares
 }
 
+#[tauri::command]
+fn pick_folder() -> Result<Option<String>, String> {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(output) = Command::new("zenity")
+            .args(["--file-selection", "--directory", "--title=Select folder to share"])
+            .output()
+        {
+            if output.status.success() {
+                let chosen = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !chosen.is_empty() {
+                    return Ok(Some(chosen));
+                }
+            }
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // PowerShell folder browser dialog
+        let ps_cmd = "[System.Reflection.Assembly]::LoadWithPartialName('System.windows.forms') | Out-Null; $f = New-Object System.Windows.Forms.FolderBrowserDialog; if ($f.ShowDialog() -eq 'OK') { Write-Output $f.SelectedPath }";
+        if let Ok(output) = Command::new("powershell")
+            .args(["-NoProfile", "-Command", ps_cmd])
+            .output()
+        {
+            if output.status.success() {
+                let chosen = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !chosen.is_empty() {
+                    return Ok(Some(chosen));
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+#[tauri::command]
+fn configure_folder_share(folder_path: String, share_name: String, read_only: bool) -> Result<bool, String> {
+    #[cfg(target_os = "linux")]
+    {
+        let terminal = if Command::new("which").arg("mate-terminal").status().map(|s| s.success()).unwrap_or(false) {
+            "mate-terminal"
+        } else if Command::new("which").arg("gnome-terminal").status().map(|s| s.success()).unwrap_or(false) {
+            "gnome-terminal"
+        } else {
+            "xterm"
+        };
+
+        let mode = if read_only { "read" } else { "write" };
+        let temp_status = format!("/tmp/sharescout-share-{}.json", std::process::id());
+
+        let cmd_args = if terminal == "mate-terminal" {
+            vec![
+                "-e".to_string(),
+                format!(
+                    "python3 folder_share.py --configure-folder {} '{}' '{}' {}",
+                    temp_status, folder_path, share_name, mode
+                ),
+            ]
+        } else {
+            vec![
+                "-e".to_string(),
+                format!(
+                    "python3 folder_share.py --configure-folder {} '{}' '{}' {}",
+                    temp_status, folder_path, share_name, mode
+                ),
+            ]
+        };
+
+        let _child = Command::new(terminal)
+            .args(&cmd_args)
+            .spawn()
+            .map_err(|e| format!("Failed to launch sharing terminal: {}", e))?;
+
+        Ok(true)
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let _ = Command::new("shrpubw.exe").spawn();
+        Ok(true)
+    }
+
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    {
+        Ok(false)
+    }
+}
+
+#[tauri::command]
+fn launch_cloud_signin(_provider: String) -> Result<bool, String> {
+    let script = format!(
+        "import cloud_ui, app_info; import tkinter as tk; root = tk.Tk(); root.withdraw();\nclass MockApp:\n    root = root\n    def add_cloud_account(self, p, r):\n        import json, os; from pathlib import Path\n        cfg = Path(os.environ.get('HOME', '')) / '.config/ResourceMapper/connections.json'\n        items = []\n        if cfg.exists(): items = json.loads(cfg.read_text())\n        items.append({{'name': r, 'kind': p, 'source': r, 'target': f'~/ShareScout/{{r}}', 'auto': True, 'status': 'Connected'}})\n        cfg.write_text(json.dumps(items, indent=2))\n\nui = cloud_ui.CloudSignIn(MockApp())\nroot.mainloop()"
+    );
+
+    let _ = Command::new("python3")
+        .args(["-c", &script])
+        .spawn()
+        .map_err(|e| format!("Failed to launch cloud sign-in: {}", e))?;
+
+    Ok(true)
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -261,6 +365,9 @@ pub fn run() {
             open_file_manager,
             scan_local_network,
             list_device_shares,
+            pick_folder,
+            configure_folder_share,
+            launch_cloud_signin,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

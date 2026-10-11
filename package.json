@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",

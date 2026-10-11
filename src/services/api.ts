@@ -147,3 +147,50 @@ export const listDeviceShares = async (address: string): Promise<DiscoveredShare
     { name: 'Shared', comment: 'General shared folder', permission: 'Read/Write' },
   ];
 };
+
+export const pickFolder = async (): Promise<string | null> => {
+  if (isTauri()) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const result = await invoke<string | null>('pick_folder');
+      return result;
+    } catch {
+      // fallback
+    }
+  }
+  return null;
+};
+
+export const configureFolderShare = async (
+  folderPath: string,
+  shareName: string,
+  readOnly: boolean
+): Promise<boolean> => {
+  if (isTauri()) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return await invoke<boolean>('configure_folder_share', {
+        folderPath,
+        shareName,
+        readOnly,
+      });
+    } catch (e) {
+      console.error('Failed to configure share:', e);
+      return false;
+    }
+  }
+  return true;
+};
+
+export const launchCloudSignIn = async (provider: string): Promise<boolean> => {
+  if (isTauri()) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return await invoke<boolean>('launch_cloud_signin', { provider });
+    } catch (e) {
+      console.error('Failed to launch cloud sign-in:', e);
+      return false;
+    }
+  }
+  return true;
+};

@@ -255,13 +255,13 @@ export const Discovery: React.FC<DiscoveryProps> = ({ onBack, onConnectShare }) 
         </div>
       </footer>
 
-      {/* Device Credentials Modal */}
+      {/* Device Credentials Modal matching mockup */}
       <Modal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         title="Sign In to Device"
-        subtitle={selectedDevice ? `Enter credentials for ${selectedDevice}` : 'Enter device credentials'}
-        maxWidth="max-w-sm"
+        subtitle={selectedDevice ? `Enter credentials for ${selectedDevice}` : 'Enter network device credentials'}
+        maxWidth="max-w-md"
       >
         <form
           onSubmit={(e) => {
@@ -269,37 +269,61 @@ export const Discovery: React.FC<DiscoveryProps> = ({ onBack, onConnectShare }) 
             setShowAuthModal(false);
             if (selectedDevice) handleSelectDevice(selectedDevice);
           }}
-          className="space-y-3"
+          className="space-y-4 pt-2"
         >
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Username</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Username</label>
             <input
               type="text"
               required
-              className="w-full text-xs py-2 px-3 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="e.g. smbuser or Administrator"
+              className="w-full text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
+
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
             <input
               type="password"
               required
-              className="w-full text-xs py-2 px-3 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="••••••••"
+              className="w-full text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Domain / Workgroup (Optional)</label>
+            <input
+              type="text"
+              placeholder="WORKGROUP"
+              className="w-full text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer select-none pt-1">
+            <input
+              type="checkbox"
+              defaultChecked
+              className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500"
+            />
+            <span className="text-xs font-medium text-slate-700">
+              Remember credentials for this device
+            </span>
+          </label>
+
+          <div className="flex justify-center gap-3 pt-3">
+            <button
+              type="submit"
+              className="py-2.5 px-6 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs cursor-pointer transition-all"
+            >
+              Sign In
+            </button>
             <button
               type="button"
               onClick={() => setShowAuthModal(false)}
-              className="py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              className="py-2.5 px-5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              className="py-1.5 px-3.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              Sign In
             </button>
           </div>
         </form>
