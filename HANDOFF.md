@@ -1,4 +1,21 @@
 # Handoff
+Updated: 2026-10-12T15:34:30-04:00
+Agent: Tommy (Codex)
+Commit: e03dcbc
+
+## Done
+- Committed all four existing pending files unchanged, including scripts/build_install_desktop.py and tests/test_desktop_build.py, on chore/commit-desktop-build-helper.
+- Python tests before and after: 133 tests, 1 failure and 4 errors caused by sandbox socket restrictions.
+
+## Next
+- Owner presses "Push branch" in Roster to push chore/commit-desktop-build-helper.
+
+## Blockers
+- Sandbox socket restrictions prevent the full Python suite from passing.
+
+---
+
+# Handoff
 Updated: 2026-10-12T01:30:18-04:00
 Agent: Tommy (Codex)
 Commit: dc36ba9
