@@ -1,4 +1,21 @@
 # Handoff
+Updated: 2026-10-12T01:30:18-04:00
+Agent: Tommy (Codex)
+Commit: dc36ba9
+
+## Done
+- Restored the temporary 0.7.0 bump to the previous version, 0.6.1, on test/version-rollback-0.6.1; added **Version rollback Test Completed** to README.md.
+- Verified rollback metadata matches the prior 0.6.1 commit; preserved unrelated local edits. Python tests before/after: 133 tests, unchanged 1 failure and 4 errors caused by sandbox socket restrictions.
+
+## Next
+- Push test/version-rollback-0.6.1 and open its pull request against main when GitHub access is available.
+
+## Blockers
+- GitHub DNS/API access blocks push and pull request creation; sandbox socket restrictions prevent all Python tests passing.
+
+---
+
+# Handoff
 Updated: 2026-10-12T00:58:02-04:00
 Agent: Tommy (Codex)
 Commit: 4009d9b
