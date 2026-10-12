@@ -1,4 +1,22 @@
 # Handoff
+Updated: 2026-10-12T00:58:02-04:00
+Agent: Tommy (Codex)
+Commit: 4009d9b
+
+## Done
+- Read README.md first; committed the temporary minor bump from 0.6.1 to 0.7.0 on test/minor-bump-0.7.0, keeping application metadata, lockfiles, native title and README consistent.
+- Preserved unrelated local edits; version consistency checks passed. Python tests before/after: 133 tests, unchanged 1 failure and 4 errors from sandbox socket restrictions.
+
+## Next
+- Push test/minor-bump-0.7.0 and open its PR against tommy-rebuild when GitHub access is available; retain 0.7.0 until the owner requests restoration to 0.6.1.
+
+## Blockers
+- GitHub DNS/API access blocked push and PR creation; gh authentication also reports an invalid token.
+- Sandbox socket restrictions prevent the full Python suite from passing.
+
+---
+
+# Handoff
 Updated: 2026-10-11T23:22:41-04:00
 Agent: Tommy (Codex)
 Commit: 3d60953
