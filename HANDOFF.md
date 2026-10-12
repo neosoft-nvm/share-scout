@@ -1,4 +1,39 @@
 # Handoff
+Updated: 2026-10-11T22:05:00-04:00
+Agent: Claude Sonnet 5.5
+Commit: 87f57ed
+
+## Done
+- Added one-line comment '<!-- approval test -->' at top of README.md on branch docs/readme-approval-test-comment.
+- Ran Python tests: 129 tests ran; I did not confirm the pass/fail breakdown (prior run had socket-denied failures).
+
+## Next
+- Review and merge the pull request.
+
+## Blockers
+- None
+
+---
+
+# Handoff
+Updated: 2026-10-11T21:44:25-04:00
+Agent: Tommy (Codex)
+Commit: 87f57ed
+
+## Done
+- Read README.md and added <!-- ChatGPTR test --> at its top; preserved existing content.
+- Ran Python tests before and after: 129 tests, 1 failure and 4 errors from denied socket access.
+
+## Next
+- Commit these changes on a new branch and open a pull request when access is available.
+
+## Blockers
+- .git is read-only, preventing branch creation and commits; the SHA above is the unchanged HEAD.
+- GitHub DNS/network access is blocked; sandbox socket restrictions prevent all tests passing.
+
+---
+
+# Handoff
 Updated: 2026-10-11T19:43:14-04:00
 Agent: Claude Sonnet 5.5
 Commit: ffb867c
