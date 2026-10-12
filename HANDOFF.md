@@ -1,4 +1,23 @@
 # Handoff
+Updated: 2026-10-11T23:22:41-04:00
+Agent: Tommy (Codex)
+Commit: 3d60953
+
+## Done
+- Read README.md first; committed all pre-existing changes on new branch tommy-rebuild (06a1eff).
+- Added ShareScout 0.6.1 to the native titlebar (3d60953).
+- Passed 20 frontend tests, frontend build, and Rust check. Python suite before/after: 132 tests, same 1 failure and 4 errors from sandbox socket restrictions.
+
+## Next
+- Push tommy-rebuild and open its pull request from a network-enabled session, then install the rebuilt native app on the owner's test PC.
+
+## Blockers
+- GitHub DNS/API access is unavailable, blocking push and pull request creation.
+- Sandbox socket restrictions prevent the full Python suite from passing; native titlebar rendering requires desktop verification.
+
+---
+
+# Handoff
 Updated: 2026-10-11T22:15:48-04:00
 Agent: Tommy (Codex)
 Commit: 75ff36d
