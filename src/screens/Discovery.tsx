@@ -1,333 +1,95 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Laptop,
-  Folder,
-  RotateCw,
-  Server,
-} from 'lucide-react';
-import { DiscoveredDevice, DiscoveredShare } from '../types';
-import { scanLocalNetwork, listDeviceShares } from '../services/api';
+import { useEffect, useRef, useState } from 'react';
+import { Folder, Laptop, RotateCw } from 'lucide-react';
+import type { DiscoveredDevice, DiscoveredShare, Credentials } from '../types';
+import { ApiError, errorMessage, listDeviceShares, scanLocalNetwork, stopScan } from '../services/api';
+import { CredentialsModal } from '../components/CredentialsModal';
 import { Modal } from '../components/Modal';
 
-interface DiscoveryProps {
-  onBack: () => void;
-  onConnectShare: (deviceAddress: string, shareName: string, autoReconnect: boolean) => void;
-}
-
-export const Discovery: React.FC<DiscoveryProps> = ({ onBack, onConnectShare }) => {
+export function Discovery({ onBack, onConnectShare }: {
+  onBack: () => void; onConnectShare: (address: string, name: string, auto: boolean) => Promise<void>;
+}) {
   const [scanning, setScanning] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [devices, setDevices] = useState<DiscoveredDevice[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState('');
   const [shares, setShares] = useState<DiscoveredShare[]>([]);
-  const [selectedShare, setSelectedShare] = useState<string | null>(null);
-  const [loadingShares, setLoadingShares] = useState(false);
-  const [autoReconnect] = useState(true);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [selectedShare, setSelectedShare] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState('');
+  const [networkLabel, setNetworkLabel] = useState('Connected IPv4 networks');
+  const [showAuth, setShowAuth] = useState(false);
+  const [showManual, setShowManual] = useState(false);
+  const [manual, setManual] = useState('');
+  const [auto, setAuto] = useState(true);
+  const activeScan = useRef('');
+  const shareRequest = useRef(0);
+  const alive = useRef(true);
 
-  // Auto scan on mount
+  async function selectDevice(address: string, credentials?: Credentials, remember = false) {
+    const request = ++shareRequest.current;
+    setSelectedDevice(address); setSelectedShare(''); setShares([]); setLoading(true); setError('');
+    try {
+      const result = await listDeviceShares(address, credentials, remember);
+      if (!alive.current || request !== shareRequest.current) return;
+      setShares(result); setSelectedShare(result[0]?.name || '');
+    } catch (err) {
+      if (alive.current && request === shareRequest.current) {
+        setError(errorMessage(err));
+        if (err instanceof ApiError && err.auth && !credentials) setShowAuth(true);
+      }
+      if (credentials) throw err;
+    } finally { if (alive.current && request === shareRequest.current) setLoading(false); }
+  }
+  async function scan() {
+    const id = crypto.randomUUID(); activeScan.current = id; setScanning(true); setError('');
+    try {
+      const result = await scanLocalNetwork(id);
+      if (!alive.current || activeScan.current !== id) return;
+      setDevices(result.devices);
+      setNetworkLabel(result.networks.map(x => x.network + (x.limited ? ' (nearby /24 only)' : '')).join(', ') || 'No connected IPv4 networks');
+      if (result.devices.length) void selectDevice(result.devices[0].address);
+      else { setSelectedDevice(''); setShares([]); setSelectedShare(''); }
+    } catch (err) { if (alive.current) setError(errorMessage(err)); }
+    finally { if (alive.current && activeScan.current === id) { setScanning(false); activeScan.current = ''; } }
+  }
   useEffect(() => {
-    handleStartScan();
+    alive.current = true;
+    void scan();
+    return () => { alive.current = false; shareRequest.current++; if (activeScan.current) void stopScan(activeScan.current).catch(() => {}); };
   }, []);
-
-  const handleStartScan = async () => {
-    setScanning(true);
-    setProgress(20);
-    const progressTimer = setInterval(() => {
-      setProgress((p) => (p >= 90 ? p : p + 15));
-    }, 200);
-
-    try {
-      const results = await scanLocalNetwork();
-      setDevices(results);
-      setProgress(100);
-      if (results.length > 0 && !selectedDevice) {
-        handleSelectDevice(results[0].address);
-      }
-    } finally {
-      clearInterval(progressTimer);
-      setScanning(false);
-    }
-  };
-
-  const handleSelectDevice = async (address: string) => {
-    setSelectedDevice(address);
-    setSelectedShare(null);
-    setLoadingShares(true);
-    try {
-      const shareResults = await listDeviceShares(address);
-      setShares(shareResults);
-      if (shareResults.length > 0) {
-        setSelectedShare(shareResults[0].name);
-      }
-    } finally {
-      setLoadingShares(false);
-    }
-  };
-
-  const handleConnect = () => {
-    if (!selectedDevice || !selectedShare) return;
-    onConnectShare(selectedDevice, selectedShare, autoReconnect);
+  async function leave() {
+    if (activeScan.current) { await stopScan(activeScan.current); activeScan.current = ''; }
     onBack();
-  };
-
-  return (
-    <div className="flex flex-col min-h-screen bg-slate-50 p-6 md:p-8 max-w-6xl mx-auto">
-      {/* Header matching mockup */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs mb-6">
-        <h1 className="text-xl font-black text-slate-900 tracking-tight mb-3">
-          Find Network Folders
-        </h1>
-
-        {/* Progress telemetry bar */}
-        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-3">
-          <div
-            className="bg-indigo-600 h-full transition-all duration-300 rounded-full"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-
-        {/* Telemetry row */}
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-slate-600">
-            {scanning
-              ? 'Scanning local network (192.168.1.0/24)...'
-              : `Scanning local network (192.168.1.0/24)... Found ${devices.length} devices`}
-          </p>
-
-          <button
-            type="button"
-            disabled={scanning}
-            onClick={handleStartScan}
-            className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer disabled:opacity-50"
-          >
-            <RotateCw className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : ''}`} />
-            <span>Rescan</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Two-Column Split Workflow */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 mb-6">
-        {/* Left Column: Discovered Devices */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col">
-          <h2 className="text-sm font-bold text-slate-900 mb-4">
-            Discovered Devices
-          </h2>
-
-          <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[380px] pr-1">
-            {devices.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-xs">
-                {scanning ? 'Searching for devices on network...' : 'No devices found.'}
-              </div>
-            ) : (
-              devices.map((device) => {
-                const isSelected = selectedDevice === device.address;
-                const cat = device.category || 'Desktop';
-                return (
-                  <div
-                    key={device.address}
-                    onClick={() => handleSelectDevice(device.address)}
-                    className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-indigo-50/70 border-indigo-400 ring-1 ring-indigo-400'
-                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
-                        {cat === 'NAS' || cat === 'Server' ? (
-                          <Server className="w-4 h-4" />
-                        ) : (
-                          <Laptop className="w-4 h-4" />
-                        )}
-                      </div>
-                      <span className="text-xs font-bold text-slate-900">
-                        {device.address} - {device.name || 'Device'}
-                      </span>
-                    </div>
-
-                    <span className="px-2.5 py-1 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-600">
-                      {cat}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Shared Folders */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col">
-          <h2 className="text-sm font-bold text-slate-900 mb-4">
-            {selectedDevice
-              ? `Shared Folders on ${devices.find(d => d.address === selectedDevice)?.name || selectedDevice}`
-              : 'Shared Folders'}
-          </h2>
-
-          <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[380px] pr-1">
-            {loadingShares ? (
-              <div className="text-center py-12 text-slate-400 text-xs">
-                Querying accessible shares...
-              </div>
-            ) : shares.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-xs">
-                {selectedDevice
-                  ? 'No visible shares or authentication required.'
-                  : 'Select a device from the left to view shares.'}
-              </div>
-            ) : (
-              shares.map((share) => {
-                const isSelected = selectedShare === share.name;
-                const perm = share.permission || 'Guest';
-                const permColor =
-                  perm === 'Read/Write'
-                    ? 'text-emerald-600'
-                    : perm === 'Password Protected'
-                    ? 'text-amber-600'
-                    : 'text-indigo-600';
-
-                return (
-                  <div
-                    key={share.name}
-                    onClick={() => setSelectedShare(share.name)}
-                    className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-indigo-50/70 border-indigo-400 ring-1 ring-indigo-400'
-                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                        <Folder className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">{share.name}</p>
-                        <p className={`text-[11px] font-semibold ${permColor}`}>
-                          [{perm}]
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Action Dock matching mockup */}
-      <footer className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => setShowAuthModal(true)}
-          className="text-xs font-medium text-slate-600 hover:text-indigo-600 cursor-pointer"
-        >
-          Need credentials? <span className="text-indigo-600 underline font-semibold">Sign In</span>
-        </button>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            disabled={!selectedDevice || !selectedShare}
-            onClick={handleConnect}
-            className="py-2.5 px-5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed"
-          >
-            Connect Selected Folder
-          </button>
-          <button
-            type="button"
-            onClick={onBack}
-            className="py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const ip = prompt('Enter manual IP address (e.g. 192.168.1.150):');
-              if (ip) handleSelectDevice(ip.trim());
-            }}
-            className="py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-          >
-            Manual IP
-          </button>
-        </div>
-      </footer>
-
-      {/* Device Credentials Modal matching mockup */}
-      <Modal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        title="Sign In to Device"
-        subtitle={selectedDevice ? `Enter credentials for ${selectedDevice}` : 'Enter network device credentials'}
-        maxWidth="max-w-md"
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setShowAuthModal(false);
-            if (selectedDevice) handleSelectDevice(selectedDevice);
-          }}
-          className="space-y-4 pt-2"
-        >
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Username</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. smbuser or Administrator"
-              className="w-full text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
-            <input
-              type="password"
-              required
-              placeholder="••••••••"
-              className="w-full text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Domain / Workgroup (Optional)</label>
-            <input
-              type="text"
-              placeholder="WORKGROUP"
-              className="w-full text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-
-          <label className="flex items-center gap-2 cursor-pointer select-none pt-1">
-            <input
-              type="checkbox"
-              defaultChecked
-              className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500"
-            />
-            <span className="text-xs font-medium text-slate-700">
-              Remember credentials for this device
-            </span>
-          </label>
-
-          <div className="flex justify-center gap-3 pt-3">
-            <button
-              type="submit"
-              className="py-2.5 px-6 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs cursor-pointer transition-all"
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowAuthModal(false)}
-              className="py-2.5 px-5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </Modal>
+  }
+  return <div className="app-screen scanner">
+    <header className="scanner-header">
+      <h1 className="text-2xl font-semibold">Find Network Folders</h1>
+      <div className={`scan-progress ${scanning ? 'scanning' : ''}`} aria-label={scanning ? 'Scanning' : 'Scan complete'}><div /></div>
+      <div className="flex flex-wrap justify-between items-center gap-3"><p className="text-sm text-slate-600">{scanning ? 'Scanning connected networks…' : `${networkLabel} · Found ${devices.length} devices`}</p>
+        <button className="secondary flex items-center gap-2" onClick={() => scanning ? void stopScan(activeScan.current).catch(err => setError(errorMessage(err))) : void scan()}><RotateCw size={16} />{scanning ? 'Stop' : 'Rescan'}</button></div>
+    </header>
+    {error && <p role="alert" className="error-message mx-6 mt-3">{error}</p>}
+    <div className="scanner-columns">
+      <section className="scanner-column"><h2>Discovered Devices</h2><div className="scanner-list space-y-3">
+        {!devices.length && <p className="empty-state">{scanning ? 'Searching for devices offering SMB sharing…' : 'No devices found. Enable file sharing on the other device, or use Manual IP.'}</p>}
+        {devices.map(device => <button type="button" key={device.address} onClick={() => void selectDevice(device.address)} className={`device-row ${selectedDevice === device.address ? 'selected' : ''}`}><Laptop size={26} /><span>{device.address}{device.name ? ` — ${device.name}` : ''}</span>{device.category && <span className="text-xs text-slate-500">{device.category}</span>}</button>)}
+      </div></section>
+      <section className="scanner-column"><h2>{selectedDevice ? `Shared Folders on ${selectedDevice}` : 'Shared Folders'}</h2><div className="scanner-list share-list">
+        {!shares.length && <p className="empty-state">{loading ? 'Loading folders…' : selectedDevice ? 'No folders available. Try Sign In or check sharing on this device.' : 'Choose a device to see its folders.'}</p>}
+        {shares.map(share => <button type="button" key={share.name} onClick={() => setSelectedShare(share.name)} className={`share-row ${selectedShare === share.name ? 'selected' : ''}`}><Folder size={28} /><span><strong>{share.name}</strong>{share.comment && <small>{share.comment}</small>}{share.permission && <small>{share.permission}</small>}</span></button>)}
+      </div></section>
     </div>
-  );
-};
+    <footer className="scanner-footer"><div className="space-y-2"><button className="text-sm underline text-indigo-700" disabled={!selectedDevice || connecting} onClick={() => setShowAuth(true)}>Need credentials? Sign In</button><label className="flex gap-2 text-xs"><input type="checkbox" checked={auto} onChange={e => setAuto(e.target.checked)} />Reconnect when app opens</label></div>
+      <div className="flex flex-wrap gap-2"><button className="primary" disabled={!selectedDevice || !selectedShare || loading || connecting} onClick={async () => {
+        setConnecting(true); setError('');
+        try { await onConnectShare(selectedDevice, selectedShare, auto); onBack(); }
+        catch (err) { setError(errorMessage(err)); if (err instanceof ApiError && err.auth) setShowAuth(true); }
+        finally { setConnecting(false); }
+      }}>{connecting ? 'Connecting…' : 'Connect Selected Folder'}</button><button className="secondary" disabled={connecting} onClick={() => void leave().catch(err => setError(errorMessage(err)))}>Cancel</button><button className="secondary" disabled={connecting} onClick={() => setShowManual(true)}>Manual IP</button></div>
+    </footer>
+    {showAuth && <CredentialsModal isOpen address={selectedDevice} onClose={() => setShowAuth(false)} onSubmit={async (credentials, remember) => { await selectDevice(selectedDevice, credentials, remember); setShowAuth(false); }} />}
+    <Modal isOpen={showManual} onClose={() => setShowManual(false)} title="Find a Device by IP" subtitle="Enter the IPv4 address of the device offering shared folders.">
+      <form className="space-y-4" onSubmit={e => { e.preventDefault(); setShowManual(false); void selectDevice(manual.trim()); }}><label className="field-label">IPv4 address<input className="field" autoFocus required value={manual} onChange={e => setManual(e.target.value)} placeholder="192.168.1.150" /></label><div className="dialog-actions"><button className="secondary" type="button" onClick={() => setShowManual(false)}>Cancel</button><button className="primary">Show Folders</button></div></form>
+    </Modal>
+  </div>;
+}

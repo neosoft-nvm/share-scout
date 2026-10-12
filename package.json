@@ -1,13 +1,13 @@
 {
   "name": "share-scout",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test": "vitest run",
-    "tauri": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri"
+    "tauri": "tauri"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",

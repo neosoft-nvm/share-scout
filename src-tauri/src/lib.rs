@@ -1,374 +1,282 @@
-use serde::{Deserialize, Serialize};
-use std::process::Command;
+#[cfg(all(not(debug_assertions), not(feature = "custom-protocol")))]
+compile_error!("Production builds must enable custom-protocol to embed the ShareScout interface.");
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ResourceItem {
-    pub name: String,
-    pub kind: String,
-    pub source: String,
-    pub target: Option<String>,
-    pub auto: bool,
-    pub status: String,
+use serde_json::{json, Value};
+use std::{
+    collections::HashMap,
+    io::{BufRead, BufReader, Write},
+    process::{Child, ChildStdin, Command, Stdio},
+    sync::{mpsc, Arc, Mutex},
+    time::Duration,
+};
+use tauri::Manager;
+
+type Reply = Result<Value, Value>;
+type Pending = Arc<Mutex<HashMap<u64, mpsc::Sender<Reply>>>>;
+
+struct Bridge {
+    input: Mutex<ChildStdin>,
+    child: Mutex<Child>,
+    pending: Pending,
+    next: std::sync::atomic::AtomicU64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DiscoveredDevice {
-    pub address: String,
-    pub name: Option<String>,
-    pub category: Option<String>,
+fn failure(message: impl ToString) -> Value {
+    json!({"message": message.to_string(), "auth": false})
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DiscoveredShare {
-    pub name: String,
-    pub comment: Option<String>,
-    pub permission: Option<String>,
-}
-
-fn config_path() -> std::path::PathBuf {
-    #[cfg(target_os = "windows")]
-    {
-        if let Ok(appdata) = std::env::var("LOCALAPPDATA") {
-            return std::path::PathBuf::from(appdata).join("ResourceMapper").join("connections.json");
-        }
-    }
-    if let Ok(home) = std::env::var("HOME") {
-        return std::path::PathBuf::from(home).join(".config").join("ResourceMapper").join("connections.json");
-    }
-    std::path::PathBuf::from("connections.json")
-}
-
-#[tauri::command]
-fn get_saved_resources() -> Vec<ResourceItem> {
-    let path = config_path();
-    if let Ok(content) = std::fs::read_to_string(&path) {
-        if let Ok(mut items) = serde_json::from_str::<Vec<ResourceItem>>(&content) {
-            for item in &mut items {
-                item.status = "Disconnected".into();
+impl Bridge {
+    fn start(
+        script: &std::path::Path,
+        app: tauri::AppHandle,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        #[cfg(target_os = "windows")]
+        let mut command = {
+            use std::os::windows::process::CommandExt;
+            let available = Command::new("py")
+                .args(["-3", "--version"])
+                .creation_flags(0x08000000)
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false);
+            if available {
+                let mut command = Command::new("py");
+                command.arg("-3");
+                command
+            } else {
+                Command::new("python")
             }
-            return items;
-        }
-    }
-    Vec::new()
-}
-
-#[tauri::command]
-fn save_resources(items: Vec<ResourceItem>) -> bool {
-    let path = config_path();
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    if let Ok(json) = serde_json::to_string_pretty(&items) {
-        return std::fs::write(&path, json).is_ok();
-    }
-    false
-}
-
-#[tauri::command]
-fn mount_resource(item: ResourceItem) -> Result<bool, String> {
-    #[cfg(target_os = "linux")]
-    {
-        if item.kind == "Network share" {
-            let status = Command::new("gio")
-                .args(["mount", &item.source])
-                .status()
-                .map_err(|e| e.to_string())?;
-            return Ok(status.success());
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        if item.kind == "Network share" {
-            let target = item.target.unwrap_or_else(|| "Z:".into());
-            let status = Command::new("net")
-                .args(["use", &target, &item.source])
-                .status()
-                .map_err(|e| e.to_string())?;
-            return Ok(status.success());
-        }
-    }
-
-    Ok(true)
-}
-
-#[tauri::command]
-fn unmount_resource(item: ResourceItem) -> Result<bool, String> {
-    #[cfg(target_os = "linux")]
-    {
-        if item.kind == "Network share" {
-            let _ = Command::new("gio")
-                .args(["mount", "-u", &item.source])
-                .status();
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        if item.kind == "Network share" {
-            if let Some(target) = item.target {
-                let _ = Command::new("net")
-                    .args(["use", &target, "/delete", "/y"])
-                    .status();
-            }
-        }
-    }
-
-    Ok(true)
-}
-
-#[tauri::command]
-fn open_file_manager(path: String) -> Result<(), String> {
-    #[cfg(target_os = "linux")]
-    {
-        let _ = Command::new("xdg-open").arg(&path).spawn();
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        let _ = Command::new("explorer").arg(&path).spawn();
-    }
-
-    Ok(())
-}
-
-#[tauri::command]
-fn scan_local_network() -> Vec<DiscoveredDevice> {
-    let mut devices = Vec::new();
-
-    #[cfg(target_os = "linux")]
-    {
-        // Query ARP table / ip neigh for active devices on local subnet
-        if let Ok(output) = Command::new("ip").args(["neigh"]).output() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 4 && !line.contains("FAILED") {
-                    let ip = parts[0];
-                    if ip.starts_with("192.168.") || ip.starts_with("10.") || ip.starts_with("172.") {
-                        let category = if ip.ends_with(".150") || ip.ends_with(".200") {
-                            "NAS"
-                        } else if ip.ends_with(".201") || ip.ends_with(".254") {
-                            "Server"
-                        } else {
-                            "Desktop"
-                        };
-
-                        devices.push(DiscoveredDevice {
-                            address: ip.to_string(),
-                            name: Some(format!("Device ({})", ip)),
-                            category: Some(category.to_string()),
-                        });
-                    }
-                }
-            }
-        }
-    }
-
-    if devices.is_empty() {
-        // Fallback to local subnet gateway check
-        devices.push(DiscoveredDevice {
-            address: "192.168.1.150".into(),
-            name: Some("NAS-Vault".into()),
-            category: Some("NAS".into()),
-        });
-        devices.push(DiscoveredDevice {
-            address: "192.168.1.102".into(),
-            name: Some("Workstation".into()),
-            category: Some("Desktop".into()),
-        });
-    }
-
-    devices
-}
-
-#[tauri::command]
-fn list_device_shares(address: String) -> Vec<DiscoveredShare> {
-    let mut shares = Vec::new();
-
-    #[cfg(target_os = "linux")]
-    {
-        // Execute real smbclient share enumeration without password
-        if let Ok(output) = Command::new("smbclient")
-            .args(["-N", "-L", &address])
-            .output()
+        };
+        #[cfg(not(target_os = "windows"))]
+        let mut command = Command::new("/usr/bin/python3");
+        command
+            .arg("-u")
+            .arg(script)
+            .env("PYTHONDONTWRITEBYTECODE", "1")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null());
+        #[cfg(target_os = "windows")]
         {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let mut in_shares = false;
-            for line in stdout.lines() {
-                if line.contains("Sharename") && line.contains("Type") {
-                    in_shares = true;
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x08000000);
+        }
+        let mut child = command.spawn()?;
+        let input = child.stdin.take().ok_or("Backend stdin unavailable")?;
+        let output = child.stdout.take().ok_or("Backend stdout unavailable")?;
+        let pending: Pending = Arc::new(Mutex::new(HashMap::new()));
+        let responses = pending.clone();
+        std::thread::spawn(move || {
+            for line in BufReader::new(output).lines() {
+                let Ok(line) = line else { break };
+                let Ok(response) = serde_json::from_str::<Value>(&line) else {
+                    continue;
+                };
+                if response["event"] == "already_running" {
+                    app.exit(0);
+                    break;
+                }
+                if response["event"] == "activate" {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
                     continue;
                 }
-                if in_shares {
-                    if line.trim().starts_with("---") {
-                        continue;
-                    }
-                    let parts: Vec<&str> = line.split_whitespace().collect();
-                    if parts.is_empty() || parts[0].starts_with("SMB") {
-                        break;
-                    }
-                    if parts.len() >= 2 && parts[1] == "Disk" {
-                        let sname = parts[0];
-                        if !sname.ends_with('$') {
-                            let perm = if sname.to_lowercase().contains("public") || sname.to_lowercase().contains("guest") {
-                                "Guest"
-                            } else {
-                                "Read/Write"
-                            };
-
-                            shares.push(DiscoveredShare {
-                                name: sname.to_string(),
-                                comment: Some(parts.get(2..).map(|c| c.join(" ")).unwrap_or_default()),
-                                permission: Some(perm.to_string()),
-                            });
-                        }
+                if let Some(id) = response["id"].as_u64() {
+                    if let Some(sender) = responses.lock().unwrap().remove(&id) {
+                        let reply = if let Some(error) = response.get("error") {
+                            Err(error.clone())
+                        } else {
+                            Ok(response["result"].clone())
+                        };
+                        let _ = sender.send(reply);
                     }
                 }
             }
-        }
-    }
-
-    if shares.is_empty() {
-        shares.push(DiscoveredShare {
-            name: "Movies".into(),
-            comment: Some("Media and entertainment".into()),
-            permission: Some("Read/Write".into()),
-        });
-        shares.push(DiscoveredShare {
-            name: "Documents".into(),
-            comment: Some("Protected work files".into()),
-            permission: Some("Password Protected".into()),
-        });
-        shares.push(DiscoveredShare {
-            name: "Public".into(),
-            comment: Some("Shared guest folder".into()),
-            permission: Some("Guest".into()),
-        });
-    }
-
-    shares
-}
-
-#[tauri::command]
-fn pick_folder() -> Result<Option<String>, String> {
-    #[cfg(target_os = "linux")]
-    {
-        if let Ok(output) = Command::new("zenity")
-            .args(["--file-selection", "--directory", "--title=Select folder to share"])
-            .output()
-        {
-            if output.status.success() {
-                let chosen = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !chosen.is_empty() {
-                    return Ok(Some(chosen));
-                }
+            for (_, sender) in responses.lock().unwrap().drain() {
+                let _ = sender.send(Err(failure(
+                    "The desktop service stopped. Restart ShareScout.",
+                )));
             }
-        }
+        });
+        Ok(Self {
+            input: Mutex::new(input),
+            child: Mutex::new(child),
+            pending,
+            next: std::sync::atomic::AtomicU64::new(1),
+        })
     }
 
-    #[cfg(target_os = "windows")]
-    {
-        // PowerShell folder browser dialog
-        let ps_cmd = "[System.Reflection.Assembly]::LoadWithPartialName('System.windows.forms') | Out-Null; $f = New-Object System.Windows.Forms.FolderBrowserDialog; if ($f.ShowDialog() -eq 'OK') { Write-Output $f.SelectedPath }";
-        if let Ok(output) = Command::new("powershell")
-            .args(["-NoProfile", "-Command", ps_cmd])
-            .output()
-        {
-            if output.status.success() {
-                let chosen = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !chosen.is_empty() {
-                    return Ok(Some(chosen));
-                }
-            }
-        }
-    }
-
-    Ok(None)
-}
-
-#[tauri::command]
-fn configure_folder_share(folder_path: String, share_name: String, read_only: bool) -> Result<bool, String> {
-    #[cfg(target_os = "linux")]
-    {
-        let terminal = if Command::new("which").arg("mate-terminal").status().map(|s| s.success()).unwrap_or(false) {
-            "mate-terminal"
-        } else if Command::new("which").arg("gnome-terminal").status().map(|s| s.success()).unwrap_or(false) {
-            "gnome-terminal"
-        } else {
-            "xterm"
+    fn call(&self, method: &str, args: Value) -> Reply {
+        let id = self.next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let (sender, receiver) = mpsc::channel();
+        self.pending.lock().unwrap().insert(id, sender);
+        let message = json!({"id": id, "method": method, "args": args});
+        let write = {
+            let mut input = self.input.lock().unwrap();
+            writeln!(input, "{}", message).and_then(|_| input.flush())
         };
-
-        let mode = if read_only { "read" } else { "write" };
-        let temp_status = format!("/tmp/sharescout-share-{}.json", std::process::id());
-
-        let cmd_args = if terminal == "mate-terminal" {
-            vec![
-                "-e".to_string(),
-                format!(
-                    "python3 folder_share.py --configure-folder {} '{}' '{}' {}",
-                    temp_status, folder_path, share_name, mode
-                ),
-            ]
-        } else {
-            vec![
-                "-e".to_string(),
-                format!(
-                    "python3 folder_share.py --configure-folder {} '{}' '{}' {}",
-                    temp_status, folder_path, share_name, mode
-                ),
-            ]
-        };
-
-        let _child = Command::new(terminal)
-            .args(&cmd_args)
-            .spawn()
-            .map_err(|e| format!("Failed to launch sharing terminal: {}", e))?;
-
-        Ok(true)
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        let _ = Command::new("shrpubw.exe").spawn();
-        Ok(true)
-    }
-
-    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
-    {
-        Ok(false)
+        if write.is_err() {
+            self.pending.lock().unwrap().remove(&id);
+            return Err(failure(
+                "The desktop service is unavailable. Restart ShareScout.",
+            ));
+        }
+        let reply = receiver
+            .recv_timeout(Duration::from_secs(660))
+            .unwrap_or_else(|_| {
+                Err(failure(
+                    "The operation timed out. Restart ShareScout before retrying.",
+                ))
+            });
+        self.pending.lock().unwrap().remove(&id);
+        reply
     }
 }
 
+impl Drop for Bridge {
+    fn drop(&mut self) {
+        if let Ok(child) = self.child.get_mut() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+    }
+}
+
+// Run blocking OS operations away from the window thread. Only allow known operations.
 #[tauri::command]
-fn launch_cloud_signin(_provider: String) -> Result<bool, String> {
-    let script = format!(
-        "import cloud_ui, app_info; import tkinter as tk; root = tk.Tk(); root.withdraw();\nclass MockApp:\n    root = root\n    def add_cloud_account(self, p, r):\n        import json, os; from pathlib import Path\n        cfg = Path(os.environ.get('HOME', '')) / '.config/ResourceMapper/connections.json'\n        items = []\n        if cfg.exists(): items = json.loads(cfg.read_text())\n        items.append({{'name': r, 'kind': p, 'source': r, 'target': f'~/ShareScout/{{r}}', 'auto': True, 'status': 'Connected'}})\n        cfg.write_text(json.dumps(items, indent=2))\n\nui = cloud_ui.CloudSignIn(MockApp())\nroot.mainloop()"
-    );
+async fn desktop_call(app: tauri::AppHandle, method: String, args: Value) -> Reply {
+    let allowed = [
+        "load",
+        "save",
+        "mount",
+        "unmount",
+        "open",
+        "scan",
+        "stop_scan",
+        "shares",
+        "cloud_accounts",
+        "cloud_start",
+        "cloud_step",
+        "cloud_cancel",
+        "cloud_finish",
+        "defaults",
+        "pick_folder",
+        "share",
+        "diagnostics",
+        "network_info",
+        "repair",
+        "check_updates",
+        "startup_update",
+        "update_preference",
+        "prepare_update",
+        "install_update",
+        "shutdown",
+    ];
+    if !allowed.contains(&method.as_str()) {
+        return Err(failure("Unsupported desktop operation."));
+    }
+    let installing = method == "install_update";
+    let handle = app.clone();
+    let result =
+        tauri::async_runtime::spawn_blocking(move || app.state::<Bridge>().call(&method, args))
+            .await
+            .map_err(failure)?;
+    if installing && result.is_ok() {
+        handle.exit(0);
+    }
+    result
+}
 
-    let _ = Command::new("python3")
-        .args(["-c", &script])
-        .spawn()
-        .map_err(|e| format!("Failed to launch cloud sign-in: {}", e))?;
+fn screen_size(width: u32, height: u32, scale: f64) -> (f64, f64) {
+    (
+        (width as f64 / scale - 32.0).clamp(200.0, 940.0),
+        (height as f64 / scale - 32.0).clamp(180.0, 680.0),
+    )
+}
 
-    Ok(true)
+fn fit_window(window: &tauri::Window) -> tauri::Result<()> {
+    if let Some(monitor) = window.current_monitor()? {
+        let area = monitor.work_area();
+        let (width, height) =
+            screen_size(area.size.width, area.size.height, monitor.scale_factor());
+        window.set_min_size(Some(tauri::LogicalSize::new(
+            width.min(720.0),
+            height.min(500.0),
+        )))?;
+        window.set_size(tauri::LogicalSize::new(width, height))?;
+        window.center()?;
+    }
+    Ok(())
 }
 
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![
-            get_saved_resources,
-            save_resources,
-            mount_resource,
-            unmount_resource,
-            open_file_manager,
-            scan_local_network,
-            list_device_shares,
-            pick_folder,
-            configure_folder_share,
-            launch_cloud_signin,
-        ])
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::ScaleFactorChanged { .. }) {
+                let _ = fit_window(window);
+            }
+        })
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                fit_window(&window.as_ref().window())?;
+            }
+            let beside = std::env::current_exe()?
+                .parent()
+                .ok_or("Executable directory unavailable")?
+                .join("backend/desktop_service.py");
+            let bundled = if beside.is_file() {
+                beside
+            } else {
+                app.path()
+                    .resource_dir()?
+                    .join("backend/desktop_service.py")
+            };
+            #[cfg(debug_assertions)]
+            let script =
+                std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../desktop_service.py");
+            #[cfg(not(debug_assertions))]
+            let script = bundled;
+            #[cfg(debug_assertions)]
+            let _ = bundled;
+            app.manage(Bridge::start(&script, app.handle().clone())?);
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![desktop_call])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .expect("error while running ShareScout");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::screen_size;
+    #[cfg(feature = "custom-protocol")]
+    #[test]
+    fn production_interface_is_embedded() {
+        let context: tauri::Context<tauri::Wry> = tauri::generate_context!();
+        let index = context
+            .assets()
+            .get(&"index.html".into())
+            .expect("Production index.html must be embedded");
+        assert!(String::from_utf8_lossy(&index).contains("/assets/"));
+        assert!(context.assets().iter().any(|(path, _)| path
+            .trim_start_matches('/')
+            .starts_with("assets/")
+            && path.ends_with(".js")));
+    }
+    #[test]
+    fn scaled_720p_window_fits_available_display() {
+        for scale in [1.0, 1.5, 2.0] {
+            let (width, height) = screen_size(1280, 720, scale);
+            assert!(width * scale < 1280.0);
+            assert!(height * scale < 720.0);
+        }
+    }
+    #[test]
+    fn four_k_uses_standard_bounded_window_size() {
+        for scale in [1.0, 1.5, 2.0] {
+            assert_eq!(screen_size(3840, 2160, scale), (940.0, 680.0));
+        }
+    }
 }

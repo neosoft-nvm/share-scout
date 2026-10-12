@@ -40,7 +40,6 @@ describe('Dashboard Component', () => {
         onOpenManualAddress={vi.fn()}
         onRefreshConnections={vi.fn()}
         onCheckTools={vi.fn()}
-        onCheckUpdates={vi.fn()}
       />
     );
 
@@ -63,7 +62,6 @@ describe('Dashboard Component', () => {
         onOpenManualAddress={vi.fn()}
         onRefreshConnections={vi.fn()}
         onCheckTools={vi.fn()}
-        onCheckUpdates={vi.fn()}
       />
     );
 
@@ -89,7 +87,6 @@ describe('Dashboard Component', () => {
         onOpenManualAddress={vi.fn()}
         onRefreshConnections={vi.fn()}
         onCheckTools={vi.fn()}
-        onCheckUpdates={vi.fn()}
       />
     );
 

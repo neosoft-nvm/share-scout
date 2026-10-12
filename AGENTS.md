@@ -1,7 +1,7 @@
 # ShareScout Agent Summary & Project Directives
 
 ## Project Overview & Ownership
-- **Lead Agent**: David (appointed 2026-10-10; probation through 10/17/26 10:44 AM). Predecessor (ChatGPT) terminated.
+- **Lead Agent**: Tommy (appointed 2026-10-11; probation through 2026-10-18 8:14 PM America/New_York).
 - **Repository**: Authoritative root is `/home/lsparks1/VsCode/share-scout` (`git@github.com:neosoft-nvm/share-scout.git`).
 - **Core Purpose**: Lightweight, beginner-friendly desktop file share & cloud mount utility for Linux and Windows.
 
@@ -10,7 +10,7 @@
 2. **Platform Scope**: Linux (Tauri/GIO/Samba), Windows (Tauri/NetUse/WinFsp), and Android (Capacitor 8 APK via GitHub Actions).
 3. **Display Targets**: Minimum test target is 1280x720 (720p); scaling-aware up to 4K (100%, 150%, 200%).
 4. **Testing Protocol**: Run `python3 -m unittest discover -s tests` before and after all changes. All tests must pass.
-5. **Release Milestone**: Bumping to `v0.6.0` to introduce professional visual redesign and flow upgrades.
+5. **Release Milestone**: Repair build `v0.6.1` integrates the React/Tauri interface with the existing platform services.
 6. **Commitment & Delivery Integrity**: Never promise designs, features, or UI capabilities that cannot be delivered exactly as presented. Verify feasibility, rendering engines, and dependencies upfront before committing to deliverables.
 7. **Communication Standard**: Keep all responses short, concise, and directly to the point.
 
@@ -39,3 +39,6 @@
 - Linux install/run: `bash Launch-Linux.sh` (or `python3 resource_mapper.py`)
 - Windows install/run: `Launch-Windows.cmd` (or `Setup-Windows.ps1`)
 - Build Debian package: `python3 scripts/build_deb.py`
+
+## Current native implementation
+Read `IMPLEMENTATION.md` and `HANDOVER.md` for the current architecture and verification limits. The native UI uses `src/`, `src-tauri/src/lib.rs`, and `desktop_service.py`; the Python/Tk UI remains a preserved fallback. Android is a future target. Keep responses short, concise and to the point on every project unless asked directly.

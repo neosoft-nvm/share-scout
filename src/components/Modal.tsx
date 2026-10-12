@@ -1,56 +1,33 @@
-import React, { useEffect } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
+import type { ReactNode } from 'react';
 
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-  maxWidth?: string;
-}
-
-export const Modal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  subtitle,
-  children,
-  maxWidth = 'max-w-lg',
-}) => {
+export function Modal({ isOpen, onClose, title, subtitle, children, maxWidth = 'max-w-lg' }: {
+  isOpen: boolean; onClose: () => void; title: string; subtitle?: string; children: ReactNode; maxWidth?: string;
+}) {
+  const panel = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const close = useRef(onClose); close.current = onClose;
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
+    if (!isOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const focusable = () => Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]') || []);
+    const target = panel.current?.querySelector<HTMLElement>('[autofocus]') || focusable()[0];
+    target?.focus();
+    function keydown(e: KeyboardEvent) {
+      if (e.key === 'Escape') { e.stopPropagation(); close.current(); }
+      if (e.key === 'Tab') {
+        const elements = focusable(); const first = elements[0]; const last = elements[elements.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+      }
     }
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
+    document.addEventListener('keydown', keydown);
+    return () => { document.removeEventListener('keydown', keydown); previous?.focus(); };
+  }, [isOpen]);
   if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-      <div
-        className={`w-full ${maxWidth} bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden transform transition-all`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between p-5 border-b border-slate-100">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
-  );
-};
+  return <div className="modal-overlay"><div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`modal-panel ${maxWidth}`}>
+    <header className="modal-header"><div><h2 id={titleId}>{title}</h2>{subtitle && <p>{subtitle}</p>}</div><button type="button" className="modal-close" aria-label="Close dialog" onClick={onClose}><X size={21} /></button></header>
+    <div className="modal-body">{children}</div>
+  </div></div>;
+}

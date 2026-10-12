@@ -16,12 +16,13 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
-      - run: npm install
+      - run: npm ci
       - run: npm test
       - run: npm run build
       - name: Python Unit Tests
         run: |
-          sudo apt-get update && sudo apt-get install -y python3-tk
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
           python3 -m unittest discover -s tests
 
   build-tauri:
@@ -30,9 +31,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'ubuntu-22.04'
-          - platform: 'windows-latest'
-
+          - platform: ubuntu-22.04
+          - platform: windows-latest
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -40,24 +40,30 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
       - uses: dtolnay/rust-toolchain@stable
       - name: Install Linux Dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
-      - run: npm install
-      - uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm ci
+      - run: npm run tauri build
+      - name: Verify embedded desktop interface
+        run: cargo test --features custom-protocol --manifest-path src-tauri/Cargo.toml --lib
+      - name: Package native desktop runtime
+        run: python scripts/package_desktop.py
+      - uses: actions/upload-artifact@v4
         with:
-          tagName: v__VERSION__
-          releaseName: 'ShareScout v__VERSION__'
-          releaseDraft: false
-          prerelease: false
-          args: --ignore-version-mismatches
+          name: ShareScout-Desktop-${{ matrix.platform }}
+          path: |
+            dist/sharescout-desktop-*.zip
+            src-tauri/target/release/bundle/
 
   build-android:
+    if: github.event_name == 'workflow_dispatch'
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -68,9 +74,9 @@ jobs:
           cache: 'npm'
       - uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: zulu
           java-version: '21'
-      - run: npm install
+      - run: npm ci
       - run: npm run build
       - run: npx cap sync android
       - name: Build Android APK
@@ -78,8 +84,7 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
-      - name: Upload Android APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: ShareScout-Android-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk

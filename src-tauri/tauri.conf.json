@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ShareScout",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "identifier": "com.sharescout.app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "ShareScout",
+        "title": "ShareScout 0.6.1",
         "width": 940,
         "height": 680,
         "minWidth": 720,
@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
@@ -30,6 +30,35 @@
     "targets": "all",
     "icon": [
       "../sharescout.png"
-    ]
+    ],
+    "resources": {
+      "../desktop_service.py": "backend/desktop_service.py",
+      "../network.py": "backend/network.py",
+      "../linux_mount.py": "backend/linux_mount.py",
+      "../credentials.py": "backend/credentials.py",
+      "../cloud_setup.py": "backend/cloud_setup.py",
+      "../folder_share.py": "backend/folder_share.py",
+      "../sharing_setup.py": "backend/sharing_setup.py",
+      "../updates.py": "backend/updates.py",
+      "../app_info.py": "backend/app_info.py",
+      "../native_updates.py": "backend/native_updates.py",
+      "../single_instance.py": "backend/single_instance.py"
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "python3",
+          "python3-gi",
+          "smbclient",
+          "rclone",
+          "fuse3",
+          "gvfs-backends",
+          "libglib2.0-bin",
+          "iproute2",
+          "zenity",
+          "libsecret-tools"
+        ]
+      }
+    }
   }
 }

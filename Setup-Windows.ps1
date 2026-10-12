@@ -12,6 +12,13 @@ try {
     if (!(Get-Command rclone -ErrorAction SilentlyContinue)) { Install-Dependency 'Rclone.Rclone' 'rclone' }
     $winfsp = (Test-Path "${env:ProgramFiles(x86)}\WinFsp") -or (Test-Path "$env:ProgramFiles\WinFsp")
     if (!$winfsp) { Install-Dependency 'WinFsp.WinFsp' 'WinFsp cloud drive support' }
+    $nativeBinary = Join-Path $PSScriptRoot 'src-tauri\target\release\share-scout.exe'
+    if ((Test-Path $nativeBinary) -and (Test-Path "$PSScriptRoot\scripts\install_desktop.py")) {
+        if (Get-Command py -ErrorAction SilentlyContinue) { & py -3 "$PSScriptRoot\scripts\install_desktop.py" $nativeBinary }
+        else { & python "$PSScriptRoot\scripts\install_desktop.py" $nativeBinary }
+        if ($LASTEXITCODE -ne 0) { throw 'The native desktop installation failed.' }
+        exit 0
+    }
     $appDir = Join-Path $env:LOCALAPPDATA 'ResourceMapperApp'
     New-Item -ItemType Directory -Force -Path $appDir | Out-Null
     if ($PSScriptRoot -ne $appDir) {

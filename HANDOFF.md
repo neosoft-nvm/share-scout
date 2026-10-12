@@ -1,3 +1,93 @@
+# Handoff
+Updated: 2026-10-11T23:22:41-04:00
+Agent: Tommy (Codex)
+Commit: 3d60953
+
+## Done
+- Read README.md first; committed all pre-existing changes on new branch tommy-rebuild (06a1eff).
+- Added ShareScout 0.6.1 to the native titlebar (3d60953).
+- Passed 20 frontend tests, frontend build, and Rust check. Python suite before/after: 132 tests, same 1 failure and 4 errors from sandbox socket restrictions.
+
+## Next
+- Push tommy-rebuild and open its pull request from a network-enabled session, then install the rebuilt native app on the owner's test PC.
+
+## Blockers
+- GitHub DNS/API access is unavailable, blocking push and pull request creation.
+- Sandbox socket restrictions prevent the full Python suite from passing; native titlebar rendering requires desktop verification.
+
+---
+
+# Handoff
+Updated: 2026-10-11T22:15:48-04:00
+Agent: Tommy (Codex)
+Commit: 75ff36d
+
+## Done
+- Read README.md first; added the native Local Network Info button and dialog for active IPv4 addresses, full subnets/netmasks, and default gateways on Linux and Windows.
+- Updated README.md to confirm the feature; preserved pre-existing work.
+- Verification: 20 frontend tests, frontend build, Rust check, and 3 new Python tests passed. Full Python suite before/after has the same 1 failure and 4 errors caused by sandbox socket restrictions.
+
+## Next
+- Resolve the uncommitted native prerequisite work, then commit this feature on a new branch and open its pull request in a writable, network-enabled session.
+
+## Blockers
+- Read-only .git blocked creation of feat/local-network-info; no commit was created. Commit above is unchanged HEAD.
+- GitHub API access is blocked, preventing a pull request.
+- Sandbox socket restrictions prevent the full Python suite from passing; live Linux/Windows behavior remains unverified.
+
+---
+
+# Handoff
+Updated: 2026-10-11T22:05:00-04:00
+Agent: Claude Sonnet 5.5
+Commit: 87f57ed
+
+## Done
+- Added one-line comment '<!-- approval test -->' at top of README.md on branch docs/readme-approval-test-comment.
+- Ran Python tests: 129 tests ran; I did not confirm the pass/fail breakdown (prior run had socket-denied failures).
+
+## Next
+- Review and merge the pull request.
+
+## Blockers
+- None
+
+---
+
+# Handoff
+Updated: 2026-10-11T21:44:25-04:00
+Agent: Tommy (Codex)
+Commit: 87f57ed
+
+## Done
+- Read README.md and added <!-- ChatGPTR test --> at its top; preserved existing content.
+- Ran Python tests before and after: 129 tests, 1 failure and 4 errors from denied socket access.
+
+## Next
+- Commit these changes on a new branch and open a pull request when access is available.
+
+## Blockers
+- .git is read-only, preventing branch creation and commits; the SHA above is the unchanged HEAD.
+- GitHub DNS/network access is blocked; sandbox socket restrictions prevent all tests passing.
+
+---
+
+# Handoff
+Updated: 2026-10-11T19:43:14-04:00
+Agent: Claude Sonnet 5.5
+Commit: ffb867c
+
+## Done
+- Added one-line comment '<!-- second test -->' at top of README.md on branch docs/readme-second-test-comment
+
+## Next
+- Review and merge the pull request
+
+## Blockers
+- None
+
+---
+
 # ShareScout agent handoff
 Updated: 2026-10-08. Current version: 0.5.0.
 
