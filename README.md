@@ -1,6 +1,8 @@
 <!-- approval test -->
 <!-- ChatGPTR test -->
-# ShareScout 0.7.0 — find, pick, connect
+**Version rollback Test Completed**
+
+# ShareScout 0.6.1 — find, pick, connect
 # ShareScout 0.6.0 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
