@@ -1,8 +1,17 @@
 <!-- approval test -->
-<!-- second test -->
+<!-- ChatGPTR test -->
+# ShareScout 0.6.1 — find, pick, connect
 # ShareScout 0.6.0 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
+
+## Current native desktop build
+
+The repaired React/Tauri interface is the primary desktop target. See [IMPLEMENTATION.md](IMPLEMENTATION.md) for native build/install steps, prerequisites, verification and remaining device tests. The instructions below also describe the preserved Python fallback; a source edit does not update an installed copy automatically.
+
+Native connections report success only after backend confirmation. Google Drive/OneDrive sign-in, device credentials, discovery, password-protected sharing and system diagnostics are connected to real services. Android remains a future target.
+
+**Updated: Local Network Info.** The native desktop home screen now includes a **Local Network Info** button. It shows this machine’s active IPv4 interfaces, local IP addresses, full subnets (CIDR and subnet masks), and configured default gateways on Linux and Windows. Interfaces without a default gateway are labeled accordingly. Reopen the dialog to refresh the information.
 
 ## Project scope
 

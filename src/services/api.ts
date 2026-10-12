@@ -1,196 +1,50 @@
-import { ResourceItem, DiscoveredDevice, DiscoveredShare } from '../types';
+import type { ResourceItem, DiscoveredShare, Credentials, ScanResult, CloudQuestion, Diagnostics } from '../types';
 
-const STORAGE_KEY = 'sharescout_connections_v1';
-
-// Initial default demo resources if storage is empty
-const DEFAULT_ITEMS: ResourceItem[] = [
-  {
-    name: 'Family Photos',
-    kind: 'Network share',
-    source: 'smb://192.168.1.120/Family Photos',
-    target: '',
-    auto: true,
-    status: 'Connected',
-  },
-  {
-    name: 'Google Drive',
-    kind: 'Google Drive',
-    source: 'Google Drive',
-    target: '~/ShareScout/Google Drive',
-    auto: true,
-    status: 'Connected',
-  },
-  {
-    name: 'Backup NAS',
-    kind: 'Network share',
-    source: 'smb://192.168.1.200/Backup',
-    target: '',
-    auto: false,
-    status: 'Disconnected',
-  },
-];
-
-export const isTauri = (): boolean => {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-};
-
-export const loadResources = async (): Promise<ResourceItem[]> => {
-  if (isTauri()) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      return await invoke<ResourceItem[]>('get_saved_resources');
-    } catch {
-      // fallback
-    }
+export class ApiError extends Error {
+  auth: boolean;
+  constructor(value: unknown) {
+    const detail = value && typeof value === 'object' ? value as { message?: string; auth?: boolean } : null;
+    super(detail?.message || (typeof value === 'string' ? value : 'The operation could not finish.'));
+    this.auth = !!detail?.auth;
   }
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ITEMS));
-    return DEFAULT_ITEMS;
-  }
+}
+export const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+export const errorMessage = (error: unknown) => error instanceof Error ? error.message : new ApiError(error).message;
+
+export async function desktopCall<T>(method: string, args: Record<string, unknown> = {}): Promise<T> {
+  if (!isTauri()) throw new ApiError('Open the ShareScout desktop app to use this feature.');
   try {
-    return JSON.parse(raw);
-  } catch {
-    return DEFAULT_ITEMS;
-  }
-};
+    const { invoke } = await import('@tauri-apps/api/core');
+    return await invoke<T>('desktop_call', { method, args });
+  } catch (error) { throw new ApiError(error); }
+}
 
-export const saveResources = async (items: ResourceItem[]): Promise<void> => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  if (isTauri()) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('save_resources', { items });
-    } catch {
-      // ignore
-    }
-  }
-};
+export const loadResources = () => desktopCall<ResourceItem[]>('load');
+export const saveResources = (items: ResourceItem[]) => desktopCall<boolean>('save', { items });
+export const mountResource = (item: ResourceItem, credentials?: Credentials, remember = false) =>
+  desktopCall<ResourceItem>('mount', { item, credentials, remember });
+export const unmountResource = (item: ResourceItem) => desktopCall<boolean>('unmount', { item });
+export const openInFileManager = (item: ResourceItem) => desktopCall<boolean>('open', { item });
+export const scanLocalNetwork = (scanId: string) => desktopCall<ScanResult>('scan', { scanId });
+export const stopScan = (scanId: string) => desktopCall<boolean>('stop_scan', { scanId });
+export const listDeviceShares = (address: string, credentials?: Credentials, remember = false) =>
+  desktopCall<DiscoveredShare[]>('shares', { address, credentials, remember });
+export const pickFolder = () => desktopCall<string | null>('pick_folder');
+export const configureFolderShare = (folderPath: string, shareName: string, readOnly: boolean) =>
+  desktopCall<{ ok: boolean; wizard?: boolean; message?: string; address?: string; name?: string }>('share', { folderPath, shareName, readOnly });
+export const cloudAccounts = () => desktopCall<{ remote: string; provider: 'Google Drive' | 'OneDrive' }[]>('cloud_accounts');
+export const cloudStart = (provider: string) => desktopCall<{ session: string; remote: string }>('cloud_start', { provider });
+export const cloudStep = (session: string, state?: string, answer?: string | boolean) => desktopCall<CloudQuestion>('cloud_step', { session, state, answer });
+export const cloudCancel = (session: string) => desktopCall<boolean>('cloud_cancel', { session });
+export const cloudFinish = (session: string) => desktopCall<boolean>('cloud_finish', { session });
+export const getDefaults = () => desktopCall<{ windows: boolean; mountRoot: string; drive: string; version: string }>('defaults');
+export const runDiagnostics = () => desktopCall<Diagnostics>('diagnostics');
+export const repairSharing = () => desktopCall<{ message?: string }>('repair');
+export const checkUpdates = () => desktopCall<{ installed: string; latest: string; newer: boolean; canInstall: boolean }>('check_updates');
 
-export const mountResource = async (item: ResourceItem): Promise<boolean> => {
-  if (isTauri()) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      return await invoke<boolean>('mount_resource', { item });
-    } catch {
-      // ignore
-    }
-  }
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  return true;
-};
+export const prepareUpdate = (version: string) => desktopCall<string>("prepare_update", { version });
+export const installUpdate = (stage: string) => desktopCall<boolean>("install_update", { stage });
 
-export const unmountResource = async (item: ResourceItem): Promise<boolean> => {
-  if (isTauri()) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      return await invoke<boolean>('unmount_resource', { item });
-    } catch {
-      // ignore
-    }
-  }
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  return true;
-};
-
-export const openInFileManager = async (item: ResourceItem): Promise<void> => {
-  if (isTauri()) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('open_file_manager', { path: item.target || item.source });
-      return;
-    } catch {
-      // ignore
-    }
-  }
-  console.log('Opening file manager for:', item.target || item.source);
-};
-
-export const scanLocalNetwork = async (): Promise<DiscoveredDevice[]> => {
-  if (isTauri()) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      return await invoke<DiscoveredDevice[]>('scan_local_network');
-    } catch {
-      // fallback
-    }
-  }
-  // Mock devices for standalone / browser testing
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  return [
-    { address: '192.168.1.120', name: 'Synology NAS', category: 'NAS' },
-    { address: '192.168.1.155', name: 'LivingRoom-PC', category: 'Desktop' },
-    { address: '192.168.1.180', name: 'Backup-Server', category: 'Server' },
-  ];
-};
-
-export const listDeviceShares = async (address: string): Promise<DiscoveredShare[]> => {
-  if (isTauri()) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      return await invoke<DiscoveredShare[]>('list_device_shares', { address });
-    } catch {
-      // fallback
-    }
-  }
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  if (address === '192.168.1.120') {
-    return [
-      { name: 'Family Photos', comment: 'Family memories and archives', permission: 'Read/Write' },
-      { name: 'Public', comment: 'Shared public files', permission: 'Guest Access' },
-      { name: 'Media', comment: 'Home streaming media', permission: 'Read Only' },
-    ];
-  }
-  return [
-    { name: 'Documents', comment: 'User documents', permission: 'Read/Write' },
-    { name: 'Shared', comment: 'General shared folder', permission: 'Read/Write' },
-  ];
-};
-
-export const pickFolder = async (): Promise<string | null> => {
-  if (isTauri()) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const result = await invoke<string | null>('pick_folder');
-      return result;
-    } catch {
-      // fallback
-    }
-  }
-  return null;
-};
-
-export const configureFolderShare = async (
-  folderPath: string,
-  shareName: string,
-  readOnly: boolean
-): Promise<boolean> => {
-  if (isTauri()) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      return await invoke<boolean>('configure_folder_share', {
-        folderPath,
-        shareName,
-        readOnly,
-      });
-    } catch (e) {
-      console.error('Failed to configure share:', e);
-      return false;
-    }
-  }
-  return true;
-};
-
-export const launchCloudSignIn = async (provider: string): Promise<boolean> => {
-  if (isTauri()) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      return await invoke<boolean>('launch_cloud_signin', { provider });
-    } catch (e) {
-      console.error('Failed to launch cloud sign-in:', e);
-      return false;
-    }
-  }
-  return true;
-};
+export interface UpdateInfo { installed: string; latest: string; newer: boolean; canInstall: boolean; }
+export const startupUpdate = () => desktopCall<UpdateInfo | null>('startup_update');
+export const setUpdatePreference = (automatic: boolean) => desktopCall<boolean>('update_preference', { automatic });

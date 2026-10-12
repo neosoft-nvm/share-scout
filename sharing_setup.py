@@ -250,6 +250,10 @@ if __name__ == '__main__':
         try: apply_share(sys.argv[2])
         except Exception as exc: print(str(exc), file=sys.stderr); sys.exit(1)
     elif len(sys.argv) == 3 and sys.argv[1] == '--configure':
+        import signal
+        def cancelled(signum, frame): raise KeyboardInterrupt('Setup terminal closed.')
+        signal.signal(signal.SIGHUP, cancelled)
+        signal.signal(signal.SIGTERM, cancelled)
         try:
             configure(sys.argv[2])
         except (Exception, KeyboardInterrupt) as exc:

@@ -1,203 +1,121 @@
-import React, { useState, useEffect } from 'react';
-import { ResourceItem } from './types';
-import {
-  loadResources,
-  saveResources,
-  mountResource,
-  unmountResource,
-  openInFileManager,
-} from './services/api';
+import { useState, useEffect, useRef } from 'react';
+import type { ResourceItem, Credentials } from './types';
+import { ApiError, loadResources, saveResources, mountResource, unmountResource, openInFileManager, errorMessage, isTauri, desktopCall, startupUpdate, type UpdateInfo } from './services/api';
 import { Dashboard } from './screens/Dashboard';
 import { Discovery } from './screens/Discovery';
 import { CloudModal } from './components/CloudModal';
 import { ManualAddressModal } from './components/ManualAddressModal';
 import { ShareFolderModal } from './components/ShareFolderModal';
 import { DiagnosticsModal } from './components/DiagnosticsModal';
+import { NetworkInfoModal } from './components/NetworkInfoModal';
+import { CredentialsModal } from './components/CredentialsModal';
+import { UpdateModal } from './components/UpdateModal';
 
-export const App: React.FC = () => {
+const same = (a: ResourceItem, b: ResourceItem) => a.kind === b.kind && a.source === b.source;
+
+export function App() {
   const [currentScreen, setCurrentScreen] = useState<'dashboard' | 'discovery'>('dashboard');
   const [resources, setResources] = useState<ResourceItem[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(0);
+  const items = useRef<ResourceItem[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [modal, setModal] = useState('');
+  const [error, setError] = useState('');
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [authItem, setAuthItem] = useState<ResourceItem | null>(null);
+  const busy = useRef(false);
+  const [working, setWorking] = useState(false);
+  const loaded = useRef(false);
+  const initialized = useRef(false);
 
-  // Modals
-  const [isCloudOpen, setIsCloudOpen] = useState(false);
-  const [isManualOpen, setIsManualOpen] = useState(false);
-  const [isShareFolderOpen, setIsShareFolderOpen] = useState(false);
-  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
-
+  function show(next: ResourceItem[]) { items.current = next; setResources(next); }
+  async function persist(next: ResourceItem[]) {
+    if (!loaded.current) throw new Error('Saved connections could not be loaded. Restart ShareScout before making changes.');
+    if (!await saveResources(next)) throw new Error('Connections could not be saved.');
+    show(next);
+  }
+  async function connect(item: ResourceItem, credentials?: Credentials, remember = false): Promise<ResourceItem> {
+    const original = items.current.find(x => same(x, item)) || item;
+    show(items.current.map(x => same(x, item) ? { ...x, status: 'Connecting…' } : x));
+    let connected: ResourceItem;
+    try {
+      connected = await mountResource(original, credentials, remember);
+    } catch (err) {
+      show(items.current.map(x => same(x, item) ? { ...original, status: 'Disconnected' } : x));
+      if (err instanceof ApiError && err.auth && !credentials) setAuthItem(original);
+      throw err;
+    }
+    show(items.current.map(x => same(x, item) ? connected : x));
+    await persist(items.current);
+    if (connected.warning) setError(connected.warning);
+    return connected;
+  }
+  async function perform(action: () => Promise<void>) {
+    if (busy.current) return;
+    busy.current = true; setWorking(true); setError('');
+    try { await action(); }
+    catch (err) { setError(errorMessage(err)); }
+    finally { busy.current = false; setWorking(false); }
+  }
+  async function addAndConnect(item: ResourceItem) {
+    const existing = items.current.find(x => same(x, item));
+    if (!existing) await persist([...items.current, { ...item, status: 'Disconnected' }]);
+    const index = items.current.findIndex(x => same(x, item));
+    setSelectedIndex(index);
+    const connected = await connect(existing || item);
+    await openInFileManager(connected);
+  }
   useEffect(() => {
-    loadResources().then((items) => {
-      setResources(items);
-      if (items.length > 0 && selectedIndex === null) {
-        setSelectedIndex(0);
+    if (initialized.current) return;
+    initialized.current = true;
+    if (isTauri()) void startupUpdate().then(setUpdate).catch(() => {});
+    void perform(async () => {
+      const saved = await loadResources(); loaded.current = true;
+      show(saved); setSelectedIndex(saved.length ? 0 : null);
+      for (const item of saved.filter(x => x.auto && x.status !== 'Connected')) {
+        try { await connect(item); }
+        catch (err) { setError(errorMessage(err)); if (err instanceof ApiError && err.auth) break; }
       }
     });
   }, []);
+  useEffect(() => {
+    if (!isTauri()) return;
+    let cleanup: (() => void) | undefined;
+    let disposed = false;
+    void import('@tauri-apps/api/window').then(async ({ getCurrentWindow }) => {
+      const win = getCurrentWindow();
+      const unlisten = await win.onCloseRequested(async event => {
+        event.preventDefault();
+        if (busy.current) { setError('Wait for the current operation to finish before closing.'); return; }
+        try { await desktopCall('shutdown'); await win.destroy(); }
+        catch (err) { setError(errorMessage(err)); }
+      });
+      if (disposed) unlisten(); else cleanup = unlisten;
+    }).catch(err => setError(errorMessage(err)));
+    return () => { disposed = true; cleanup?.(); };
+  }, []);
 
-  const updateResources = (newItems: ResourceItem[]) => {
-    setResources(newItems);
-    saveResources(newItems);
-  };
-
-  const handleOpen = async (item: ResourceItem) => {
-    if (item.status !== 'Connected') {
-      const idx = resources.findIndex((r) => r === item);
-      if (idx !== -1) {
-        await handleConnect(idx);
-      }
-    }
-    await openInFileManager(item);
-  };
-
-  const handleConnect = async (index: number) => {
-    const updated = [...resources];
-    updated[index] = { ...updated[index], status: 'Connecting…' };
-    setResources(updated);
-
-    const success = await mountResource(updated[index]);
-    if (success) {
-      updated[index] = { ...updated[index], status: 'Connected' };
-    } else {
-      updated[index] = { ...updated[index], status: 'Disconnected' };
-    }
-    updateResources(updated);
-  };
-
-  const handleDisconnect = async (index: number) => {
-    const updated = [...resources];
-    updated[index] = { ...updated[index], status: 'Connecting…' };
-    setResources(updated);
-
-    const success = await unmountResource(updated[index]);
-    if (success) {
-      updated[index] = { ...updated[index], status: 'Disconnected' };
-    }
-    updateResources(updated);
-  };
-
-  const handleRemove = (index: number) => {
-    const updated = resources.filter((_, i) => i !== index);
-    updateResources(updated);
-    if (selectedIndex === index) {
-      setSelectedIndex(updated.length > 0 ? 0 : null);
-    } else if (selectedIndex !== null && selectedIndex > index) {
-      setSelectedIndex(selectedIndex - 1);
-    }
-  };
-
-  const handleConnectDiscoveredShare = (
-    deviceAddress: string,
-    shareName: string,
-    autoReconnect: boolean
-  ) => {
-    const source = `smb://${deviceAddress}/${shareName}`;
-    const existingIndex = resources.findIndex((r) => r.source === source);
-
-    if (existingIndex !== -1) {
-      setSelectedIndex(existingIndex);
-      handleConnect(existingIndex);
-      return;
-    }
-
-    const newItem: ResourceItem = {
-      name: `${shareName} · ${deviceAddress}`,
-      kind: 'Network share',
-      source,
-      target: '',
-      auto: autoReconnect,
-      status: 'Connected',
-    };
-
-    const updated = [...resources, newItem];
-    updateResources(updated);
-    const newIdx = updated.length - 1;
-    setSelectedIndex(newIdx);
-    mountResource(newItem);
-  };
-
-  const handleAddManualAddress = (name: string, address: string, auto: boolean) => {
-    const newItem: ResourceItem = {
-      name,
-      kind: 'Network share',
-      source: address,
-      target: '',
-      auto,
-      status: 'Connected',
-    };
-    const updated = [...resources, newItem];
-    updateResources(updated);
-    setSelectedIndex(updated.length - 1);
-    mountResource(newItem);
-  };
-
-  const handleAddCloudAccount = (
-    provider: 'Google Drive' | 'OneDrive',
-    accountName: string
-  ) => {
-    const newItem: ResourceItem = {
-      name: accountName,
-      kind: provider,
-      source: accountName,
-      target: `~/ShareScout/${accountName}`,
-      auto: true,
-      status: 'Connected',
-    };
-    const updated = [...resources, newItem];
-    updateResources(updated);
-    setSelectedIndex(updated.length - 1);
-    mountResource(newItem);
-  };
-
-  return (
-    <>
-      {currentScreen === 'dashboard' ? (
-        <Dashboard
-          resources={resources}
-          selectedIndex={selectedIndex}
-          onSelectIndex={setSelectedIndex}
-          onOpen={handleOpen}
-          onConnect={handleConnect}
-          onDisconnect={handleDisconnect}
-          onRemove={handleRemove}
-          onOpenDiscovery={() => setCurrentScreen('discovery')}
-          onOpenCloud={() => setIsCloudOpen(true)}
-          onOpenShareFolder={() => setIsShareFolderOpen(true)}
-          onOpenManualAddress={() => setIsManualOpen(true)}
-          onRefreshConnections={() => loadResources().then(setResources)}
-          onCheckTools={() => setIsDiagnosticsOpen(true)}
-          onCheckUpdates={() => alert('ShareScout v0.6.0 is up to date.')}
-        />
-      ) : (
-        <Discovery
-          onBack={() => setCurrentScreen('dashboard')}
-          onConnectShare={handleConnectDiscoveredShare}
-        />
-      )}
-
-      {/* Dialog Modals */}
-      <CloudModal
-        isOpen={isCloudOpen}
-        onClose={() => setIsCloudOpen(false)}
-        onAddCloudAccount={handleAddCloudAccount}
-      />
-
-      <ManualAddressModal
-        isOpen={isManualOpen}
-        onClose={() => setIsManualOpen(false)}
-        onAddAddress={handleAddManualAddress}
-      />
-
-      <ShareFolderModal
-        isOpen={isShareFolderOpen}
-        onClose={() => setIsShareFolderOpen(false)}
-      />
-
-      <DiagnosticsModal
-        isOpen={isDiagnosticsOpen}
-        onClose={() => setIsDiagnosticsOpen(false)}
-      />
-    </>
-  );
-};
-
+  return <>
+    {error && <div role="alert" className="app-alert"><span>{error}</span><button aria-label="Dismiss message" onClick={() => setError('')}>×</button></div>}
+    {currentScreen === 'dashboard' ? <Dashboard resources={resources} selectedIndex={selectedIndex} onSelectIndex={setSelectedIndex} busy={working}
+      onOpen={item => void perform(async () => { const connected = item.status === 'Connected' ? item : await connect(item); await openInFileManager(connected); })}
+      onConnect={index => void perform(async () => { await connect(items.current[index]); })}
+      onDisconnect={index => void perform(async () => { const item = items.current[index]; if (!await unmountResource(item)) throw new Error('Disconnect did not finish.'); await persist(items.current.map(x => same(x, item) ? { ...x, status: 'Disconnected' } : x)); })}
+      onRemove={index => void perform(async () => { const item = items.current[index]; if (item.status === 'Connected' && !await unmountResource(item)) throw new Error('Disconnect this folder before removing it.'); await persist(items.current.filter(x => !same(x, item))); setSelectedIndex(items.current.length ? 0 : null); })}
+      onOpenDiscovery={() => setCurrentScreen('discovery')} onOpenCloud={() => setModal('cloud')} onOpenShareFolder={() => setModal('share')} onOpenManualAddress={() => setModal('manual')} onCheckTools={() => setModal('diagnostics')}
+      onRefreshConnections={() => void perform(async () => { show(await loadResources()); })}
+      onNetworkInfo={() => setModal('network-info')}
+    /> : <Discovery onBack={() => setCurrentScreen('dashboard')} onConnectShare={async (address, name, auto) => {
+      await addAndConnect({ name: `${name} · ${address}`, kind: 'Network share', source: `smb://${address}/${encodeURIComponent(name)}`, target: '', auto, status: 'Disconnected' });
+    }} />}
+    <CloudModal isOpen={modal === 'cloud'} onClose={() => setModal('')} onAddCloudAccount={addAndConnect} />
+    <ManualAddressModal isOpen={modal === 'manual'} onClose={() => setModal('')} onAddAddress={async (name, source, auto) => addAndConnect({ name, source, auto, kind: 'Network share', status: 'Disconnected', target: '' })} />
+    <ShareFolderModal isOpen={modal === 'share'} onClose={() => setModal('')} />
+    <DiagnosticsModal isOpen={modal === 'diagnostics'} onClose={() => setModal('')} />
+    <NetworkInfoModal isOpen={modal === 'network-info'} onClose={() => setModal('')} />
+    {update && !modal && !authItem && !working && currentScreen === 'dashboard' && <UpdateModal result={update} onClose={() => setUpdate(null)} />}
+    {authItem && <CredentialsModal isOpen address={authItem.source} onClose={() => setAuthItem(null)} onSubmit={async (credentials, remember) => {
+      const connected = await connect(authItem, credentials, remember); await openInFileManager(connected); setAuthItem(null); setError(connected.warning || '');
+    }} />}
+  </>;
+}
 export default App;

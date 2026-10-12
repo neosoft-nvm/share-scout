@@ -52,6 +52,38 @@ def local_networks():
     return scan_ranges([(addr['local'], addr['prefixlen']) for item in data for addr in item.get('addr_info', []) if addr.get('family') == 'inet'])
 
 
+def local_network_info():
+    """Read actual IPv4 addresses and default gateways without scan-range limits."""
+    if WINDOWS:
+        output = command(['powershell', '-NoProfile', '-Command',
+            'Get-NetIPConfiguration | ForEach-Object { $config = $_; '
+            '$_.IPv4Address | Where-Object {$_.AddressState -eq "Preferred"} | '
+            'ForEach-Object { [PSCustomObject]@{Interface=$config.InterfaceAlias; '
+            'Address=$_.IPAddress; Prefix=$_.PrefixLength; '
+            'Gateways=@($config.IPv4DefaultGateway | ForEach-Object {$_.NextHop})} } } | '
+            'ConvertTo-Json -Compress'])
+        records = json.loads(output or '[]')
+        if isinstance(records, dict): records = [records]
+    else:
+        addresses = json.loads(command(['ip', '-j', '-4', 'addr', 'show', 'up']))
+        routes = json.loads(command(['ip', '-j', '-4', 'route', 'show', 'default']))
+        records = [
+            {'Interface': item['ifname'], 'Address': addr['local'], 'Prefix': addr['prefixlen'],
+             'Gateways': [route['gateway'] for route in routes
+                          if route.get('dev') == item['ifname'] and route.get('gateway')]}
+            for item in addresses for addr in item.get('addr_info', [])
+            if addr.get('family') == 'inet'
+        ]
+    result = []
+    for record in records:
+        interface = ipaddress.IPv4Interface(f"{record['Address']}/{record['Prefix']}")
+        if interface.ip.is_loopback or interface.ip.is_unspecified: continue
+        result.append({'interface': record['Interface'], 'address': str(interface.ip),
+                       'subnet': str(interface.network), 'netmask': str(interface.netmask),
+                       'gateways': list(dict.fromkeys(record.get('Gateways') or []))})
+    return result
+
+
 def validate_ip(value):
     ip = ipaddress.IPv4Address(value.strip())
     if ip.is_unspecified or ip.is_multicast or ip == ipaddress.IPv4Address('255.255.255.255'):
@@ -66,6 +98,7 @@ def has_smb(address):
 
 
 def scan(networks, stop, update):
+    if stop.is_set(): return
     addresses = sorted({str(ip) for item in networks for ip in ipaddress.IPv4Network(item['network']).hosts()}, key=ipaddress.IPv4Address)
     if len(addresses) > 8192:
         raise ValueError('Too many connected networks. Use an IP address instead.')

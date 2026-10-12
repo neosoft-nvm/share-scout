@@ -1,4 +1,24 @@
 # Handoff
+Updated: 2026-10-11T22:15:48-04:00
+Agent: Tommy (Codex)
+Commit: 75ff36d
+
+## Done
+- Read README.md first; added the native Local Network Info button and dialog for active IPv4 addresses, full subnets/netmasks, and default gateways on Linux and Windows.
+- Updated README.md to confirm the feature; preserved pre-existing work.
+- Verification: 20 frontend tests, frontend build, Rust check, and 3 new Python tests passed. Full Python suite before/after has the same 1 failure and 4 errors caused by sandbox socket restrictions.
+
+## Next
+- Resolve the uncommitted native prerequisite work, then commit this feature on a new branch and open its pull request in a writable, network-enabled session.
+
+## Blockers
+- Read-only .git blocked creation of feat/local-network-info; no commit was created. Commit above is unchanged HEAD.
+- GitHub API access is blocked, preventing a pull request.
+- Sandbox socket restrictions prevent the full Python suite from passing; live Linux/Windows behavior remains unverified.
+
+---
+
+# Handoff
 Updated: 2026-10-11T22:05:00-04:00
 Agent: Claude Sonnet 5.5
 Commit: 87f57ed

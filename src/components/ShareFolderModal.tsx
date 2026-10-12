@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal } from './Modal';
-import { pickFolder, configureFolderShare } from '../services/api';
+import { pickFolder, configureFolderShare, errorMessage } from '../services/api';
 
 interface ShareFolderModalProps {
   isOpen: boolean;
@@ -10,12 +10,14 @@ interface ShareFolderModalProps {
 export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onClose }) => {
   const [folderPath, setFolderPath] = useState('');
   const [shareName, setShareName] = useState('');
-  const [permission, setPermission] = useState<'Read Only' | 'Read & Write'>('Read & Write');
-  const [guestAccess, setGuestAccess] = useState(false);
+  const [permission, setPermission] = useState<'Read Only' | 'Read & Write'>('Read Only');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [sharing, setSharing] = useState(false);
 
   const handleBrowse = async () => {
-    const picked = await pickFolder();
+    let picked: string | null;
+    try { picked = await pickFolder(); } catch (err) { setError(errorMessage(err)); return; }
     if (picked) {
       setFolderPath(picked);
       const name = picked.split(/[\\/]/).filter(Boolean).pop() || 'SharedFolder';
@@ -29,15 +31,20 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
 
     setSharing(true);
     const readOnly = permission === 'Read Only';
-    await configureFolderShare(folderPath.trim(), shareName.trim(), readOnly);
-    setSharing(false);
-    onClose();
+    setError(''); setMessage('Complete the administrator prompts in the setup window.');
+    try {
+      const result = await configureFolderShare(folderPath.trim(), shareName.trim(), readOnly);
+      if (result.wizard) setMessage(result.message || 'Complete the Windows sharing wizard.');
+      else if (result.ok) setMessage(`Sharing is ready: ${result.address || ''}/${result.name || shareName}`);
+      else throw new Error('Sharing did not finish.');
+    } catch (err) { setError(errorMessage(err)); setMessage(''); }
+    finally { setSharing(false); }
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => { if (!sharing) onClose(); }}
       title="Share a Local Folder"
       subtitle="Make a folder on this PC accessible to other devices on your network"
       maxWidth="max-w-lg"
@@ -45,14 +52,14 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {/* Folder picker matching mockup */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+          <label htmlFor="share-folder" className="block text-xs font-semibold text-slate-700 mb-1.5">
             Folder to Share
           </label>
           <div className="flex gap-2">
             <input
               type="text"
               required
-              placeholder="/home/username/Documents or select folder..."
+              id="share-folder" placeholder="/home/username/Documents or select folder..."
               value={folderPath}
               onChange={(e) => {
                 setFolderPath(e.target.value);
@@ -65,7 +72,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
             />
             <button
               type="button"
-              onClick={handleBrowse}
+              onClick={handleBrowse} disabled={sharing}
               className="py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
             >
               Browse...
@@ -75,13 +82,13 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
 
         {/* Share name matching mockup */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+          <label htmlFor="share-name" className="block text-xs font-semibold text-slate-700 mb-1.5">
             Share Name
           </label>
           <input
             type="text"
             required
-            value={shareName}
+            id="share-name" value={shareName}
             onChange={(e) => setShareName(e.target.value)}
             className="w-full text-xs py-2.5 px-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
@@ -115,24 +122,15 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
           </div>
         </div>
 
-        {/* Checkbox matching mockup */}
-        <label className="flex items-center gap-2 cursor-pointer select-none pt-1">
-          <input
-            type="checkbox"
-            checked={guestAccess}
-            onChange={(e) => setGuestAccess(e.target.checked)}
-            className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500"
-          />
-          <span className="text-xs font-medium text-slate-700">
-            Allow Guest Access without password
-          </span>
-        </label>
+        <p className="text-sm text-slate-600">Password-protected sharing. Sign in from other devices with this computer’s sharing account.</p>
+        {error && <p role="alert" className="error-message">{error}</p>}
+        {message && <p role="status" className="text-sm text-slate-600">{message}</p>}
 
         {/* Footer dock matching mockup */}
-        <div className="flex justify-center gap-3 pt-4">
+        <div className="dialog-actions">
           <button
             type="button"
-            onClick={onClose}
+            onClick={onClose} disabled={sharing}
             className="py-2.5 px-5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
           >
             Cancel
