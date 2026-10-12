@@ -47,4 +47,10 @@ Browser rendering checks use the actual frontend at desktop sizes and reduced lo
 
 CI produces installers and native ZIP artifacts without publishing a release. Automatic GUI upgrade is enabled only when a stable GitHub release includes the matching `sharescout-desktop-{platform}-{architecture}.zip` asset with a GitHub SHA-256 digest. Publishing remains a separate action. Android remains a future target; its existing shell is not a functional desktop-mount client.
 
-Production builds require the `custom-protocol` feature. A compile guard prevents installing a release that depends on the localhost development server. An embedded-assets regression test checks the packaged interface.
+The `custom-protocol` feature is enabled by default for production builds. A compile guard prevents installing a release that depends on the localhost development server. An embedded-assets regression test checks the packaged interface.
+
+Build and install in one command (installation runs only after a successful build):
+
+```bash
+python3 scripts/build_install_desktop.py
+```
