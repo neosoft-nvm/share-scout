@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal } from './Modal';
 import { pickFolder, configureFolderShare, errorMessage } from '../services/api';
 
@@ -14,6 +14,11 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [sharing, setSharing] = useState(false);
+  const [completed, setCompleted] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) { setCompleted(false); setError(''); setMessage(''); }
+  }, [isOpen]);
 
   const handleBrowse = async () => {
     let picked: string | null;
@@ -27,7 +32,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!folderPath.trim() || !shareName.trim()) return;
+    if (sharing || completed || !folderPath.trim() || !shareName.trim()) return;
 
     setSharing(true);
     const readOnly = permission === 'Read Only';
@@ -35,7 +40,10 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
     try {
       const result = await configureFolderShare(folderPath.trim(), shareName.trim(), readOnly);
       if (result.wizard) setMessage(result.message || 'Complete the Windows sharing wizard.');
-      else if (result.ok) setMessage(`Sharing is ready: ${result.address || ''}/${result.name || shareName}`);
+      else if (result.ok) {
+        setMessage(`Sharing is ready: ${result.address || ''}/${result.name || shareName}`);
+        setCompleted(true);
+      }
       else throw new Error('Sharing did not finish.');
     } catch (err) { setError(errorMessage(err)); setMessage(''); }
     finally { setSharing(false); }
@@ -50,6 +58,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
       maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+        <fieldset disabled={sharing || completed} className="space-y-4">
         {/* Folder picker matching mockup */}
         <div>
           <label htmlFor="share-folder" className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -123,11 +132,17 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
         </div>
 
         <p className="text-sm text-slate-600">Password-protected sharing. Sign in from other devices with this computer’s sharing account.</p>
+        </fieldset>
         {error && <p role="alert" className="error-message">{error}</p>}
         {message && <p role="status" className="text-sm text-slate-600">{message}</p>}
 
         {/* Footer dock matching mockup */}
         <div className="dialog-actions">
+          {completed ? <button
+            type="button"
+            onClick={onClose}
+            className="py-2.5 px-6 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs cursor-pointer"
+          >Done</button> : <>
           <button
             type="button"
             onClick={onClose} disabled={sharing}
@@ -142,6 +157,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
           >
             {sharing ? 'Configuring...' : 'Start Sharing'}
           </button>
+          </>}
         </div>
       </form>
     </Modal>

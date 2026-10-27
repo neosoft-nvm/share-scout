@@ -1,3 +1,18 @@
+# ShareScout 0.6.2 — 2026-10-27
+
+- Confirmed local sharing success now replaces Cancel/Start Sharing with Done.
+- Done closes the dialog without changing the share; completed inputs are disabled.
+- Reopening resets completion/messages; failed setup remains retryable.
+- Windows wizard launch remains pending because it does not prove sharing succeeded.
+- Validation: 133 Python tests and 23 frontend tests pass; frontend production build passes.
+- Version 0.6.2 native release installed on this workstation and deployed over SSH to .20 (lsparks1/Zorin) and .30 (leesparks/Fedora).
+- All three installed binaries match SHA-256 22118cdc07907f18e11e290bede1c5d1045801077755e45b2f64cf8284f1aff5.
+- Remote app processes remained running after launch; remote rendered UI and real sharing remain user checks.
+- Previous remote launchers preserved; app-only graphics workaround applied to menu shortcuts.
+- Done behavior checked with mocked sharing results, without creating another real share.
+- No keyring entry exists for the reported device; README explains Remember password in system keychain.
+- User authorized versioning, commits and repository pushes. Main advances by fast-forward; no history rewrite.
+
 # Handoff
 Updated: 2026-10-12T15:34:30-04:00
 Agent: Tommy (Codex)

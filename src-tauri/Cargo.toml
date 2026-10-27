@@ -1,6 +1,6 @@
 [package]
 name = "share-scout"
-version = "0.6.1"
+version = "0.6.2"
 description = "ShareScout desktop file share & cloud mount utility"
 edition = "2021"
 

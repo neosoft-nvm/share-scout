@@ -2,10 +2,11 @@
 <!-- ChatGPTR test -->
 **Version rollback Test Completed**
 
-# ShareScout 0.6.1 — find, pick, connect
-# ShareScout 0.6.0 — find, pick, connect
+# ShareScout 0.6.2 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
+
+After local folder sharing succeeds, the dialog shows the sharing address and a **Done** button. Click **Done** to return to the main screen; this keeps the folder shared. Failed setup remains open for correction or cancellation. Opening the Windows sharing wizard does not confirm completion.
 
 ## Current native desktop build
 
@@ -171,7 +172,7 @@ Cloud drives remain mounted while the app is open. Disconnect cloud drives befor
 
 ## Local settings
 
-Connection names and locations are stored in `%LOCALAPPDATA%\ResourceMapper` on Windows or `~/.config/ResourceMapper` on Linux. Network passwords are saved only when you choose the system password store option. Linux uses the desktop keyring (`secret-tool`); Windows uses Credential Manager. Passwords are never stored in ShareScout settings or put in command arguments. Linux browsing passes a password only to the child process environment; Linux mounting passes credentials through stdin. Cloud OAuth tokens are managed by rclone’s configuration.
+Connection names and locations are stored in `%LOCALAPPDATA%\ResourceMapper` on Windows or `~/.config/ResourceMapper` on Linux. To reuse a device login after closing ShareScout, select **Remember password in system keychain** when signing in. Without it, the password is kept only for the current app session. Network passwords are saved only when you choose the system password store option. Linux uses the desktop keyring (`secret-tool`); Windows uses Credential Manager. Passwords are never stored in ShareScout settings or put in command arguments. Linux browsing passes a password only to the child process environment; Linux mounting passes credentials through stdin. Cloud OAuth tokens are managed by rclone’s configuration.
 
 Use **Check required tools** if tools are missing. Windows installer logs appear in the initial setup terminal. Cloud logs are in the settings directory. Cloud cache size is a soft 2 GB limit; open files can exceed it.
 
