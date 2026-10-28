@@ -137,12 +137,12 @@ def records():
     return result
 
 
-def invoke(payload):
+def invoke(payload, helper=None):
     if not supported():
         raise RuntimeError('Permanent mounts require Linux with systemd.')
     if not shutil.which('pkexec'):
         raise RuntimeError('Administrator approval is unavailable. Install polkit and open ShareScout in your desktop session.')
-    approval = [shutil.which('pkexec'), '--disable-internal-agent', '/usr/bin/python3', '-I', str(Path(__file__).resolve()), '--admin']
+    approval = [shutil.which('pkexec'), '--disable-internal-agent', '/usr/bin/python3', '-I', str(Path(helper).resolve() if helper else Path(__file__).resolve()), '--admin']
     # A remotely updated app may still belong to an ended SSH session. Ask from
     # the desktop user manager so polkit can reach the existing graphical agent.
     runner = shutil.which('systemd-run')
@@ -301,7 +301,7 @@ def apply(payload, owner):
         probe = subprocess.run([tool('runuser'), '-u', reader.pw_name, '--', tool('ls'), '-U', '--', str(target)],
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=35)
         if probe.returncode:
-            raise RuntimeError('The selected account cannot read the folder. Setup will be rolled back.')
+            raise RuntimeError('The selected account cannot read this shared folder. Check access on the sharing computer; its ShareScout Sharing Diagnostics can detect NTFS/FUSE sharing permissions. Setup will be rolled back.')
         return {'ok': True, **data}
     except Exception as exc:
         stopped = command([tool('systemctl'), 'stop', auto_unit, mount_unit], check=False) if enable_attempted else None

@@ -1,6 +1,7 @@
 """Private JSON-lines service for the Tauri desktop. Never exposes a network port."""
 from concurrent.futures import ThreadPoolExecutor
 import base64
+import configparser
 import json
 import os
 from pathlib import Path
@@ -20,6 +21,7 @@ import cloud_setup
 import credentials as credential_store
 import network
 import permanent_mounts
+import sharing_permissions
 from app_info import VERSION
 
 WINDOWS = os.name == 'nt'
@@ -170,7 +172,13 @@ class DesktopService:
             address = server_address(item['source'])
             if WINDOWS and not item['target']:
                 item['target'] = network.free_drive()
-            network.mount_share(item['source'], item['target'], auth or self.get_auth(address))
+            try:
+                network.mount_share(item['source'], item['target'], auth or self.get_auth(address))
+            except (RuntimeError, OSError) as exc:
+                message = f"{item['name']} ({item['source']}): {exc}"
+                if isinstance(exc, PermissionError) and exc.errno is None:
+                    raise PermissionError(message) from exc
+                raise RuntimeError(message) from exc
             if auth:
                 try:
                     self.signed_in(address, auth, remember)
@@ -290,6 +298,50 @@ class DesktopService:
             with self.lock:
                 self.scans.pop(scan_id, None)
 
+    def local_shares(self):
+        """Read this computer's published folder configuration without changing it."""
+        if WINDOWS:
+            script = "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ConvertTo-Json -Compress -InputObject @(Get-SmbShare -ErrorAction Stop | Where-Object { $_.Path } | Select-Object Name,Path,Description)"
+            result = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script], capture_output=True, text=True, encoding='utf-8', timeout=30)
+            if result.returncode:
+                raise RuntimeError('Windows shared folders could not be read. Check Sharing Diagnostics and retry.')
+            return {'shares': [{'name': x['Name'], 'path': x['Path'], 'access': 'Windows permissions', 'available': True, 'hidden': x['Name'].endswith('$')} for x in json.loads(result.stdout or '[]')], 'warnings': []}
+        import sharing_setup as setup
+        shares = {}
+        warnings = []
+        def collect(text):
+            config = configparser.RawConfigParser(strict=False)
+            config.read_string(text)
+            for name in config.sections():
+                section = config[name]
+                if name.casefold() in ('global', 'printers', 'print$') or section.get('printable', 'no').lower() in ('yes', 'true', '1'):
+                    continue
+                path = section.get('path', '').strip()
+                if not path and name.casefold() != 'homes':
+                    continue
+                usershare_acl = section.get('usershare_acl')
+                access = ('Share permissions: ' + usershare_acl) if usershare_acl else ('Read & write' if section.get('read only', 'yes').lower() in ('no', 'false', '0') else 'Read only')
+                if not usershare_acl and section.get('write list', '').strip():
+                    access += ' (write-list exceptions)'
+                shares[name.casefold()] = {'name': name, 'path': path or 'Each signed-in user’s home folder', 'access': access, 'available': section.get('available', 'yes').lower() not in ('no', 'false', '0'), 'hidden': name.endswith('$') or section.get('browseable', section.get('browsable', 'yes')).lower() in ('no', 'false', '0')}
+            return config
+        if not setup.tool('testparm'):
+            return {'shares': [], 'warnings': ['Samba sharing tools are not installed. Use Sharing Diagnostics to set up local sharing.']}
+        result = setup.execute(['testparm', '-s', '--suppress-prompt'], check=False)
+        if result.returncode:
+            raise RuntimeError('Local Samba shares could not be read. Open Sharing Diagnostics and retry.')
+        config = collect(result.stdout)
+        if int(config.get('global', 'usershare max shares', fallback='0')) > 0:
+            if setup.tool('net'):
+                users = setup.execute(['net', 'usershare', 'info', '--long'], check=False)
+                if users.returncode:
+                    warnings.append('File-manager shares could not be read; this list may be incomplete.')
+                else:
+                    collect(users.stdout)
+            else:
+                warnings.append('The Samba net tool is missing; file-manager shares could not be read.')
+        return {'shares': sorted(shares.values(), key=lambda item: item['name'].casefold()), 'warnings': warnings}
+
     def share(self, folder, name, read_only):
         if WINDOWS:
             network.win_share_folder()
@@ -346,7 +398,17 @@ class DesktopService:
             checks.append({'name': 'Local Folder Sharing', 'ok': sharing['ready'],
                            'status': 'Ready' if sharing['ready'] else 'Needs setup',
                            'desc': sharing.get('error') or ', '.join(sharing['shares']) or 'No configured shares.'})
-        return {'checks': checks, 'windows': WINDOWS, 'version': VERSION}
+        fuse_permission = {'applicable': False, 'enabled': True, 'paths': []}
+        if not WINDOWS:
+            try:
+                fuse_permission = sharing_permissions.status()
+                if fuse_permission['applicable']:
+                    checks.append({'name': 'NTFS/FUSE Sharing Permission', 'ok': fuse_permission['enabled'],
+                                   'status': 'Allowed' if fuse_permission['enabled'] else 'Needs approval',
+                                   'desc': 'SELinux permission for Samba on: ' + ', '.join(fuse_permission['paths'])})
+            except Exception as exc:
+                checks.append({'name': 'NTFS/FUSE Sharing Permission', 'ok': False, 'status': 'Check failed', 'desc': str(exc)})
+        return {'checks': checks, 'windows': WINDOWS, 'version': VERSION, 'fusePermission': fuse_permission}
 
     def call(self, method, args):
         if method == 'load':
@@ -375,6 +437,8 @@ class DesktopService:
             with self.lock:
                 self.scans.setdefault(args['scanId'], threading.Event()).set()
             return True
+        if method == 'local_shares':
+            return self.local_shares()
         if method == 'shares':
             address = network.validate_ip(args['address'])
             auth = args.get('credentials') or self.get_auth(address)
@@ -415,6 +479,11 @@ class DesktopService:
                     raise ValueError('Finish cloud sign-in first.')
                 self.sessions.pop(args['session'])
             return True
+        if method == 'repair_fuse_permission':
+            if WINDOWS or args.get('confirmed') is not True:
+                raise RuntimeError('Confirm the Linux NTFS/FUSE sharing permission before continuing.')
+            result = permanent_mounts.invoke({'confirmed': True}, helper=Path(__file__).with_name('sharing_permissions.py'))
+            return {**result, 'diagnostics': self.diagnostics()}
         if method == 'permanent_defaults':
             info = permanent_mounts.defaults(args['source'])
             if info.get('supported'):

@@ -156,6 +156,7 @@ async fn desktop_call(app: tauri::AppHandle, method: String, args: Value) -> Rep
         "scan",
         "stop_scan",
         "shares",
+        "local_shares",
         "cloud_accounts",
         "cloud_start",
         "cloud_step",
@@ -164,6 +165,7 @@ async fn desktop_call(app: tauri::AppHandle, method: String, args: Value) -> Rep
         "defaults",
         "pick_folder",
         "share",
+        "repair_fuse_permission",
         "permanent_defaults",
         "permanent_preview",
         "permanent_apply",
@@ -200,17 +202,69 @@ fn screen_size(width: u32, height: u32, scale: f64) -> (f64, f64) {
     )
 }
 
-fn fit_window(window: &tauri::Window) -> tauri::Result<()> {
-    if let Some(monitor) = window.current_monitor()? {
+fn screen_geometry(x: i32, y: i32, width: u32, height: u32, scale: f64) -> (u32, u32, i32, i32) {
+    let scale = if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
+    };
+    let (logical_w, logical_h) = screen_size(width, height, scale);
+    // Reserve room for native title bars and keep all calculations physical.
+    let window_w = ((logical_w * scale).round() as u32)
+        .min(width.saturating_sub((32.0 * scale).ceil() as u32).max(1));
+    let window_h = ((logical_h * scale).round() as u32)
+        .min(height.saturating_sub((80.0 * scale).ceil() as u32).max(1));
+    let left = (x as i64
+        + (width.saturating_sub(window_w + (16.0 * scale).ceil() as u32) / 2) as i64)
+        .clamp(i32::MIN as i64, i32::MAX as i64) as i32;
+    let top = (y as i64
+        + (height.saturating_sub(window_h + (40.0 * scale).ceil() as u32) / 2) as i64)
+        .clamp(i32::MIN as i64, i32::MAX as i64) as i32;
+    (window_w, window_h, left, top)
+}
+
+fn small_work_area(width: u32, height: u32, scale: f64) -> bool {
+    let scale = if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
+    };
+    width as f64 / scale < 1200.0 || height as f64 / scale < 900.0
+}
+
+fn fit_window(window: &tauri::Window, initial: bool) -> tauri::Result<()> {
+    if window.is_maximized()? {
+        return Ok(());
+    }
+    let monitor = if initial {
+        window.primary_monitor()?.or(window.current_monitor()?)
+    } else {
+        window.current_monitor()?.or(window.primary_monitor()?)
+    };
+    if let Some(monitor) = monitor {
         let area = monitor.work_area();
-        let (width, height) =
-            screen_size(area.size.width, area.size.height, monitor.scale_factor());
-        window.set_min_size(Some(tauri::LogicalSize::new(
-            width.min(720.0),
-            height.min(500.0),
+        let scale = monitor.scale_factor();
+        let (width, height, x, y) = screen_geometry(
+            area.position.x,
+            area.position.y,
+            area.size.width,
+            area.size.height,
+            scale,
+        );
+        window.set_min_size(Some(tauri::PhysicalSize::new(
+            width.min((720.0 * scale).round() as u32),
+            height.min((500.0 * scale).round() as u32),
         )))?;
-        window.set_size(tauri::LogicalSize::new(width, height))?;
-        window.center()?;
+        if initial && small_work_area(area.size.width, area.size.height, scale) {
+            // Let the WM fit its own decorations/taskbars on compact displays.
+            // This also avoids GTK/X11 gravity offsets on laptop screens.
+            window.maximize()?;
+            return Ok(());
+        }
+        window.set_size(tauri::PhysicalSize::new(width, height))?;
+        // Wayland compositors may control placement themselves. Do not prevent
+        // launching if they decline an explicit position request.
+        let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
     }
     Ok(())
 }
@@ -219,12 +273,12 @@ pub fn run() {
     tauri::Builder::default()
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::ScaleFactorChanged { .. }) {
-                let _ = fit_window(window);
+                let _ = fit_window(window, false);
             }
         })
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
-                fit_window(&window.as_ref().window())?;
+                fit_window(&window.as_ref().window(), true)?;
             }
             let beside = std::env::current_exe()?
                 .parent()
@@ -245,6 +299,9 @@ pub fn run() {
             #[cfg(debug_assertions)]
             let _ = bundled;
             app.manage(Bridge::start(&script, app.handle().clone())?);
+            if let Some(window) = app.get_webview_window("main") {
+                window.show()?;
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![desktop_call])
@@ -254,7 +311,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::screen_size;
+    use super::{screen_geometry, screen_size, small_work_area};
     #[cfg(feature = "custom-protocol")]
     #[test]
     fn production_interface_is_embedded() {
@@ -276,6 +333,39 @@ mod tests {
             assert!(width * scale < 1280.0);
             assert!(height * scale < 720.0);
         }
+    }
+    #[test]
+    fn window_stays_inside_offset_and_scaled_work_areas() {
+        for (x, y, w, h, scale) in [
+            (0, 0, 1280, 720, 1.0),
+            (1920, 40, 2560, 1400, 1.5),
+            (-3840, -100, 3840, 2100, 2.0),
+            (0, 0, 1366, 720, 1.25),
+            (0, 0, 1280, 720, 2.0),
+        ] {
+            let (ww, wh, left, top) = screen_geometry(x, y, w, h, scale);
+            assert!(left >= x && top >= y);
+            assert!(left as i64 + ww as i64 <= x as i64 + w as i64);
+            assert!(top as i64 + wh as i64 <= y as i64 + h as i64);
+            assert!(top as f64 + wh as f64 + 40.0 * scale <= y as f64 + h as f64);
+            assert!(left as f64 + ww as f64 + 16.0 * scale <= x as f64 + w as f64);
+            assert!(wh <= h - 64);
+        }
+    }
+    #[test]
+    fn laptop_and_scaled_work_areas_use_native_maximize() {
+        assert!(small_work_area(1366, 741, 1.0));
+        assert!(small_work_area(1280, 720, 1.0));
+        assert!(small_work_area(1920, 1040, 1.5));
+        assert!(!small_work_area(1920, 1040, 1.0));
+        assert!(!small_work_area(3840, 2080, 2.0));
+    }
+    #[test]
+    fn invalid_scale_does_not_produce_an_offscreen_window() {
+        assert_eq!(
+            screen_geometry(0, 0, 1920, 1080, f64::NAN),
+            screen_geometry(0, 0, 1920, 1080, 1.0)
+        );
     }
     #[test]
     fn four_k_uses_standard_bounded_window_size() {

@@ -35,6 +35,7 @@ export interface CloudQuestion {
     Exclusive?: boolean; IsPassword?: boolean; Examples?: { Value: string; Help?: string }[] };
 }
 export interface Diagnostics {
+  fusePermission?: { applicable: boolean; enabled: boolean; paths: string[] };
   windows: boolean;
   version: string;
   checks: { name: string; status: string; desc: string; ok: boolean }[];

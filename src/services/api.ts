@@ -64,3 +64,8 @@ export const permanentApply = (source: string, target: string, account: string, 
   desktopCall<{ ok: boolean; target: string; resources: ResourceItem[] }>('permanent_apply', { source, target, account, readOnly, credentials });
 export const permanentRemove = (source: string) =>
   desktopCall<{ ok: boolean; removed: boolean; resources: ResourceItem[] }>('permanent_remove', { source });
+
+export const repairFusePermission = () => desktopCall<{ ok: boolean; message: string; diagnostics: Diagnostics }>('repair_fuse_permission', { confirmed: true });
+
+export interface LocalShare { name: string; path: string; access: string; available: boolean; hidden: boolean; }
+export const listLocalShares = () => desktopCall<{ shares: LocalShare[]; warnings: string[] }>('local_shares');

@@ -1,4 +1,4 @@
-# ShareScout 0.7.0 desktop
+# ShareScout 0.7.2 desktop
 
 Lead: Tommy. Authoritative source: `/home/lsparks1/VsCode/share-scout`.
 
@@ -15,6 +15,12 @@ React/TypeScript supplies the desktop UI, Tauri supplies the native window, and 
 Cloud mounts use rclone's full VFS cache. An ephemeral authenticated loopback status endpoint checks open files and queued/running/errored uploads before disconnecting. Its random credential is passed through the child environment and kept in memory. Passwords are remembered only on explicit opt-in through the existing OS credential store.
 
 Local shares stay password-protected, with read-only selected initially. The unused guest-access control was removed following the user's decision. Network device categories and share permissions are displayed only when actually supplied; IP suffixes and folder names do not establish those properties.
+
+## Self-service source sharing and window placement
+
+`sharing_permissions.py` detects active SELinux, configured Samba paths and their filesystem types. Sharing Diagnostics exposes a specific confirmed repair for `samba_share_fusefs`; its isolated root helper rechecks caller ownership, scope and policy readback, restoring the disabled value on failure. `folder_share.prepare_selinux` recognizes FUSE folders and requests the same consent rather than attempting unsupported relabeling.
+
+Window startup chooses the primary monitor. Compact/scaled work areas use native maximize, letting the window manager account for its decorations and taskbars without relying on GTK position/gravity values. Larger work areas use a bounded physical size and position with decoration margins. The window appears after sizing; existing maximization is preserved on scale changes. Position requests remain subject to compositor policy on Wayland.
 
 ## Permanent system mounts
 
@@ -63,4 +69,6 @@ Build and install in one command (installation runs only after a successful buil
 python3 scripts/build_install_desktop.py
 ```
 
-0.7.0 verification: current test results and delivery status are recorded in HANDOVER.md and HANDOFF.md. New mount checks use controlled mocks; real administrator approval, SMB mounting, reboot reconnection, and Plex playback require device verification.
+0.7.2 verification: current test results and delivery status are recorded in HANDOVER.md and HANDOFF.md. New mount checks use controlled mocks; real administrator approval, SMB mounting, reboot reconnection, and Plex playback require device verification.
+
+Local sharing inventory: `local_shares` is a read-only native command. Linux reads effective testparm configuration and enabled net usershare info; Windows reads Get-SmbShare. Hidden/disabled folder shares remain visible, printers are excluded, and partial inventory failures are surfaced. LocalSharesModal separates inventory from setup and refreshes on return; configuration does not imply reachability.

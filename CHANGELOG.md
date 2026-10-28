@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.2 — 2026-10-28
+
+- Share a Local Folder now opens an inventory of this computer’s configured folder shares, including shares created elsewhere, with a separate Set Up a Share button and refresh on return. Incoming network/cloud connections have a distinct dashboard heading.
+
+- Detect SELinux permission requirements for configured NTFS/FUSE shares and provide an explicit, administrator-approved repair in Sharing Diagnostics.
+- Detect the same requirement during new-folder sharing, without trying to relabel NTFS/FUSE files.
+- Use native maximize on compact/scaled displays to avoid offscreen GTK/X11 placement. Larger displays use bounded physical work-area coordinates with decoration margins; show the window after initial sizing.
+- Identify the saved share and SMB address in connection failures such as No route to host.
+
 ## 0.7.1 — 2026-10-28
 
 - Route permanent-mount approval through the desktop user manager so remotely launched apps can reach the graphical polkit agent; distinguish cancellation from a missing agent.

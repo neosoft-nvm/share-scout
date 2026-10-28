@@ -47,6 +47,13 @@ class DesktopServiceTests(unittest.TestCase):
             with self.assertRaises(PermissionError): self.service.mount(ITEM, {'username':'test', 'password':'private'}, True)
             save.assert_not_called()
 
+    def test_failed_network_connection_names_the_share_including_route_errors(self):
+        with patch.object(desktop.network,'mount_share',side_effect=RuntimeError('No route to host')), patch.object(self.service,'get_auth',return_value=None):
+            with self.assertRaises(RuntimeError) as result:self.service.mount(ITEM)
+            self.assertIn(ITEM['name'],str(result.exception))
+            self.assertIn(ITEM['source'],str(result.exception))
+            self.assertIn('No route to host',str(result.exception))
+
     def test_windows_assigns_unused_letter_and_normalizes_source(self):
         with patch.object(desktop, 'WINDOWS', True), patch.object(desktop.network, 'free_drive', return_value='T:'), patch.object(desktop.network, 'mount_share') as mount, patch.object(self.service, 'get_auth', return_value=None):
             result = self.service.mount(ITEM)
@@ -189,3 +196,26 @@ class UpdatePreferenceTests(unittest.TestCase):
             import native_updates
             with patch.object(native_updates,'check',side_effect=RuntimeError('offline')):
                 self.assertIsNone(desktop.DesktopService().call('startup_update',{}))
+
+class LocalSharesTests(unittest.TestCase):
+    def test_linux_inventory_includes_hidden_disabled_and_file_manager_shares(self):
+        config = '[global]\nusershare max shares = 100\n[Hidden$]\npath = /mnt/data\nbrowseable = no\n[Disabled]\npath = /srv/off\navailable = no\n[printers]\npath = /spool\nprintable = yes\n'
+        users = '[Photos]\npath=/home/test/Photos\nusershare_acl=Everyone:R,\n'
+        with patch.object(desktop, 'WINDOWS', False), patch('sharing_setup.tool', return_value='/usr/bin/tool'), patch('sharing_setup.execute', side_effect=[Mock(returncode=0, stdout=config), Mock(returncode=0, stdout=users)]) as run:
+            result = desktop.DesktopService().call('local_shares', {})
+        self.assertEqual([x['name'] for x in result['shares']], ['Disabled', 'Hidden$', 'Photos'])
+        self.assertFalse(result['shares'][0]['available'])
+        self.assertTrue(result['shares'][1]['hidden'])
+        self.assertEqual(result['shares'][2]['path'], '/home/test/Photos')
+        self.assertEqual(run.call_args_list[1].args[0], ['net', 'usershare', 'info', '--long'])
+
+    def test_failed_inventory_is_not_empty_success(self):
+        with patch.object(desktop, 'WINDOWS', False), patch('sharing_setup.tool', return_value='/usr/bin/tool'), patch('sharing_setup.execute', return_value=Mock(returncode=1, stdout='')):
+            with self.assertRaisesRegex(RuntimeError, 'could not be read'):
+                desktop.DesktopService().local_shares()
+
+    def test_windows_inventory_reads_local_folders_not_mapped_drives(self):
+        with patch.object(desktop, 'WINDOWS', True), patch.object(desktop.subprocess, 'run', return_value=Mock(returncode=0, stdout='[{"Name":"Media","Path":"D:\\\\Media"}]')) as run:
+            result = desktop.DesktopService().local_shares()
+        self.assertEqual(result['shares'][0]['name'], 'Media')
+        self.assertIn('Get-SmbShare', run.call_args.args[0][-1])

@@ -5,6 +5,7 @@ import { Dashboard } from './screens/Dashboard';
 import { Discovery } from './screens/Discovery';
 import { CloudModal } from './components/CloudModal';
 import { ManualAddressModal } from './components/ManualAddressModal';
+import { LocalSharesModal } from './components/LocalSharesModal';
 import { ShareFolderModal } from './components/ShareFolderModal';
 import { DiagnosticsModal } from './components/DiagnosticsModal';
 import { NetworkInfoModal } from './components/NetworkInfoModal';
@@ -103,7 +104,7 @@ export function App() {
       onConnect={index => void perform(async () => { await connect(items.current[index]); })}
       onDisconnect={index => void perform(async () => { const item = items.current[index]; if (!await unmountResource(item)) throw new Error('Disconnect did not finish.'); await persist(items.current.map(x => same(x, item) ? { ...x, status: 'Disconnected', auto: false } : x)); })}
       onRemove={index => void perform(async () => { const item = items.current[index]; if (item.status === 'Connected' && !await unmountResource(item)) throw new Error('Disconnect this folder before removing it.'); await persist(items.current.filter(x => !same(x, item))); setSelectedIndex(items.current.length ? 0 : null); })}
-      onOpenDiscovery={() => setCurrentScreen('discovery')} onOpenCloud={() => setModal('cloud')} onOpenShareFolder={() => setModal('share')} onOpenManualAddress={() => setModal('manual')} onCheckTools={() => setModal('diagnostics')}
+      onOpenDiscovery={() => setCurrentScreen('discovery')} onOpenCloud={() => setModal('cloud')} onOpenShareFolder={() => setModal('local-shares')} onOpenManualAddress={() => setModal('manual')} onCheckTools={() => setModal('diagnostics')}
       onRefreshConnections={() => void perform(async () => { show(await loadResources()); })}
       onNetworkInfo={() => setModal('network-info')}
       onPermanentMount={item => setMountItem(item)}
@@ -119,7 +120,8 @@ export function App() {
     }} />}
     <CloudModal isOpen={modal === 'cloud'} onClose={() => setModal('')} onAddCloudAccount={addAndConnect} />
     <ManualAddressModal isOpen={modal === 'manual'} onClose={() => setModal('')} onAddAddress={async (name, source, auto) => addAndConnect({ name, source, auto, kind: 'Network share', status: 'Disconnected', target: '' })} />
-    <ShareFolderModal isOpen={modal === 'share'} onClose={() => setModal('')} />
+    <LocalSharesModal isOpen={modal === 'local-shares'} onClose={() => setModal('')} onSetup={() => setModal('share')} />
+    <ShareFolderModal isOpen={modal === 'share'} onClose={() => setModal('local-shares')} />
     <DiagnosticsModal isOpen={modal === 'diagnostics'} onClose={() => setModal('')} />
     <NetworkInfoModal isOpen={modal === 'network-info'} onClose={() => setModal('')} />
     {mountItem && <PermanentMountModal item={mountItem} onClose={() => setMountItem(null)} onBusy={value => { busy.current = value; setWorking(value); }} onUpdated={persist} />}

@@ -21,7 +21,7 @@ WINDOWS = os.name == 'nt'
 MAX_ARCHIVE = 250 * 1024 * 1024
 MAX_UNPACKED = 600 * 1024 * 1024
 BACKEND_FILES = ['desktop_service', 'network', 'linux_mount', 'credentials', 'cloud_setup',
-                 'permanent_mounts', 'folder_share', 'sharing_setup', 'updates', 'native_updates', 'single_instance', 'app_info']
+                 'permanent_mounts', 'sharing_permissions', 'folder_share', 'sharing_setup', 'updates', 'native_updates', 'single_instance', 'app_info']
 
 
 def install_root():

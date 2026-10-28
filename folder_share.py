@@ -10,6 +10,7 @@ import sys
 import tempfile
 from datetime import datetime
 import sharing_setup as setup
+import sharing_permissions
 
 
 def validate_folder(value, user, allow_home=False):
@@ -99,6 +100,17 @@ def apply_custom(username, value, name, writable=False):
 
 def prepare_selinux(folder, user):
     if not setup.tool('getenforce') or setup.execute(['getenforce']).stdout.strip() == 'Disabled': return
+    fuse = sharing_permissions.status(folder)
+    if fuse['applicable']:
+        if not fuse['enabled']:
+            print('This folder is on an NTFS/FUSE drive. Samba needs the system-wide samba_share_fusefs permission to read configured shares on these drives.')
+            print('SELinux stays enabled. Existing Samba accounts and folder permissions are preserved.')
+            if input('Allow NTFS/FUSE sharing? Type yes to continue: ').strip().casefold() != 'yes':
+                raise RuntimeError('No share was created. Approve NTFS/FUSE sharing or choose another folder.')
+            setup.execute(['sudo', 'setsebool', '-P', 'samba_share_fusefs', 'on'], capture=False)
+            if not sharing_permissions.status(folder)['enabled']:
+                raise RuntimeError('The NTFS/FUSE sharing permission could not be verified.')
+        return
     if Path(user.pw_dir).resolve() in folder.parents:
         enabled = setup.execute(['getsebool', 'samba_enable_home_dirs']).stdout.strip().endswith('--> on')
         if not enabled:

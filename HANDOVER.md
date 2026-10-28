@@ -1,6 +1,6 @@
 # ShareScout handover
 
-Authoritative source: `/home/lsparks1/VsCode/share-scout`. Current feature version: **0.7.1**.
+Authoritative source: `/home/lsparks1/VsCode/share-scout`. Current feature version: **0.7.2**.
 
 - Read `AGENTS.md`, `IMPLEMENTATION.md`, `README.md` and `HANDOFF.md` before changes.
 - React/Tauri UI uses `src/`, `src-tauri/`, and private `desktop_service.py` worker.
@@ -12,8 +12,10 @@ Authoritative source: `/home/lsparks1/VsCode/share-scout`. Current feature versi
 - Preserve saved connections, OS credential stores, the Python fallback and historical mockups.
 - The user authorized versioning, commits and repository pushes, and deployment to .20 (lsparks1/Zorin) and .30 (leesparks/Fedora).
 - Unit tests and a simulated UI check do not prove real administrator prompts, network mounts, reboot reconnection, or Plex playback. Those require target-device verification.
-- Validation: 154 Python, 30 frontend and 3 native tests pass; generated units pass systemd validation.
-- Installed 0.7.1 locally, on .20 and .30. Saved connections were preserved; .30 has no saved cloud connection or running rclone process after launch.
+- Validation: 167 Python, 34 frontend and 6 native tests pass; generated units pass systemd validation.
+- Installed matching 0.7.2 binaries locally, on .20 and .30; saved connections preserved. The .30 process is waiting on disk I/O before showing a window; placement readback remains pending. See HANDOFF.md.
 - Permanent-mount approval uses the desktop user manager so SSH-launched apps can reach the graphical polkit agent.
 - Manual disconnect turns off startup reconnect; the dashboard provides an explicit toggle. See HANDOFF.md.
 - Keep responses short and concise.
+
+- Share a Local Folder opens local SMB share inventory; Set Up a Share opens creation and returns to a refreshed inventory. Network/cloud connections are labeled separately.

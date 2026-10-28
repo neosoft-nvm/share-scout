@@ -104,7 +104,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <section className="folder-section">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-base font-bold text-slate-900">
-            Saved & Connected Folders
+            Connections to Network & Cloud Folders
           </h2>
           <label className="flex items-center gap-2 text-xs text-slate-600">
             <input type="checkbox" checked={!!selectedItem?.auto} disabled={busy || !selectedItem || selectedItem.mountMode === 'system' || !onToggleAuto}

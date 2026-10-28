@@ -2,11 +2,21 @@
 <!-- ChatGPTR test -->
 **Version rollback Test Completed**
 
-# ShareScout 0.7.1 — find, pick, connect
+# ShareScout 0.7.2 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
 
+Choose **Share a Local Folder** to see **Folders Shared by This Computer**, including Samba/Windows folder shares created outside ShareScout. The list shows local paths, configured access, and hidden or disabled shares. Choose **Set Up a Share** to create another share. Returning from setup refreshes the list. The main **Connections to Network & Cloud Folders** list shows folders this computer connects to. Configuration visibility does not prove remote access; use **Sharing Diagnostics** to check services and permissions.
+
 After local folder sharing succeeds, the dialog shows the sharing address and a **Done** button. Click **Done** to return to the main screen; this keeps the folder shared. Failed setup remains open for correction or cancellation. Opening the Windows sharing wizard does not confirm completion.
+
+## Reinstalling: guided sharing checks
+
+Known repairs are part of ShareScout's source and release packages. On a fresh installation, open **Sharing Diagnostics** on the computer offering the files. If a configured share is on an NTFS/FUSE drive and SELinux blocks Samba access, ShareScout shows **NTFS/FUSE Sharing Permission → Needs approval**. Review the affected paths, confirm the system-wide scope, then choose **Approve & Repair NTFS/FUSE Sharing** and approve the desktop administrator prompt. SELinux stays enabled; file permissions and Samba accounts stay unchanged.
+
+New-folder sharing also detects FUSE-backed folders and asks for the same permission before creating the share. It avoids trying to relabel NTFS/FUSE files. The selected server must offer the share, and the connecting account must still have permission; software cannot bypass those requirements.
+
+Failed network connections identify the saved folder and SMB address in the error message. The native window starts maximized on compact or heavily scaled displays so the window manager keeps its frame and taskbars onscreen. On larger displays it uses a bounded size in physical work-area coordinates. Startup uses the primary monitor and shows the window after sizing. Some Wayland compositors control placement themselves.
 
 ## Permanent mounts for Plex (Linux)
 
