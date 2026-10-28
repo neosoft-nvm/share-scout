@@ -1,3 +1,14 @@
+# ShareScout 0.7.1 — 2026-10-28
+
+- Corrected permanent-mount administrator approval after remote deployment. The Zorin app had remained in a closing SSH scope; pkexec reported no authentication agent. Approval now runs through the desktop user manager with stdin-only payloads and no terminal fallback. Missing-agent and cancellation errors are distinct.
+- A harmless /usr/bin/true approval check through Zorin's user manager reached its graphical prompt and was cancelled; no mount was created by this check.
+- Disconnect disables startup reconnection. Added a visible selected-folder reconnect toggle; cloud setup defaults to reconnect off.
+- Regression checks cover disconnect/restart, removal/restart and preserving an empty current connection list despite a cloud entry in its backup during installation.
+- 154 Python tests, 30 frontend tests, 3 native tests, and production builds pass.
+- Installed 0.7.1 locally, on .20 and .30. All binaries match SHA-256 e146d5c63b7ab9440da8db208df59c7cef01fb18e167d906babed4b0de8f8aae.
+- Each install preserved saved connections exactly before launch. After launch .20 and .30 both have zero saved cloud connections and zero rclone processes; their desktop user services are active with empty startup-error logs.
+- Actual permanent SMB mount/removal, reboot reconnection and Plex playback still require user/device verification. Existing mounts and Plex libraries were not changed.
+
 # ShareScout 0.7.0 — 2026-10-28
 
 - Added Permanent Mount to discovery and saved SMB folders (Linux/systemd).

@@ -101,12 +101,13 @@ export function App() {
     {currentScreen === 'dashboard' ? <Dashboard resources={resources} selectedIndex={selectedIndex} onSelectIndex={setSelectedIndex} busy={working}
       onOpen={item => void perform(async () => { const connected = item.status === 'Connected' ? item : await connect(item); await openInFileManager(connected); })}
       onConnect={index => void perform(async () => { await connect(items.current[index]); })}
-      onDisconnect={index => void perform(async () => { const item = items.current[index]; if (!await unmountResource(item)) throw new Error('Disconnect did not finish.'); await persist(items.current.map(x => same(x, item) ? { ...x, status: 'Disconnected' } : x)); })}
+      onDisconnect={index => void perform(async () => { const item = items.current[index]; if (!await unmountResource(item)) throw new Error('Disconnect did not finish.'); await persist(items.current.map(x => same(x, item) ? { ...x, status: 'Disconnected', auto: false } : x)); })}
       onRemove={index => void perform(async () => { const item = items.current[index]; if (item.status === 'Connected' && !await unmountResource(item)) throw new Error('Disconnect this folder before removing it.'); await persist(items.current.filter(x => !same(x, item))); setSelectedIndex(items.current.length ? 0 : null); })}
       onOpenDiscovery={() => setCurrentScreen('discovery')} onOpenCloud={() => setModal('cloud')} onOpenShareFolder={() => setModal('share')} onOpenManualAddress={() => setModal('manual')} onCheckTools={() => setModal('diagnostics')}
       onRefreshConnections={() => void perform(async () => { show(await loadResources()); })}
       onNetworkInfo={() => setModal('network-info')}
       onPermanentMount={item => setMountItem(item)}
+      onToggleAuto={(index, auto) => void perform(async () => { await persist(items.current.map((item, i) => i === index ? { ...item, auto } : item)); })}
     /> : <Discovery onBack={() => setCurrentScreen('dashboard')} onConnectShare={async (address, name, auto) => {
       await addAndConnect({ name: `${name} · ${address}`, kind: 'Network share', source: `smb://${address}/${encodeURIComponent(name)}`, target: '', auto, status: 'Disconnected' });
     }} onPermanentMountShare={async (address, name) => {

@@ -66,3 +66,35 @@ describe('Persistence after connection', () => {
     await screen.findByText('Disk full'); expect(screen.getByText('Connected')).toBeTruthy();
   });
 });
+
+it('manual disconnect saves reconnect off and does not remount on restart', async () => {
+  const cloud = {...item,name:'Google Drive',kind:'Google Drive',source:'cloud-remote',auto:true,status:'Connected'};
+  api.loadResources.mockResolvedValue([cloud]); api.unmountResource.mockResolvedValue(true);
+  const view = render(<App />); await screen.findAllByText('Google Drive');
+  await waitFor(() => expect(screen.getByRole('button',{name:'Disconnect'}).hasAttribute('disabled')).toBe(false));
+  fireEvent.click(screen.getByRole('button',{name:'Disconnect'}));
+  await waitFor(() => expect(api.saveResources).toHaveBeenCalledWith([expect.objectContaining({auto:false,status:'Disconnected'})]));
+  const saved=api.saveResources.mock.calls.at(-1)![0];
+  view.unmount(); api.loadResources.mockResolvedValue(saved); api.mountResource.mockClear();
+  render(<App />); await screen.findAllByText('Google Drive');
+  await waitFor(() => expect(screen.getByRole('button',{name:'Connect',exact:true}).hasAttribute('disabled')).toBe(false));
+  expect(api.mountResource).not.toHaveBeenCalled();
+});
+
+it('removing a disconnected cloud folder stays removed on restart', async () => {
+  api.loadResources.mockResolvedValue([{...item,name:'Google Drive',kind:'Google Drive',source:'cloud-remote'}]);
+  const view=render(<App />); await screen.findAllByText('Google Drive');
+  fireEvent.click(screen.getByRole('button',{name:'Remove'}));
+  await waitFor(() => expect(api.saveResources).toHaveBeenCalledWith([]));
+  view.unmount(); api.loadResources.mockResolvedValue([]); api.mountResource.mockClear();
+  render(<App />); await screen.findByText('No folders connected yet');
+  expect(screen.queryByText('Google Drive')).toBeNull();
+  expect(api.mountResource).not.toHaveBeenCalled();
+});
+
+it('lets the user explicitly opt a selected folder back into startup reconnect', async () => {
+  render(<App />); await screen.findByText('Photos');
+  fireEvent.click(screen.getByRole('checkbox',{name:'Reconnect selected folder when app opens'}));
+  await waitFor(() => expect(api.saveResources).toHaveBeenCalledWith([expect.objectContaining({auto:true})]));
+  expect(api.mountResource).not.toHaveBeenCalled();
+});

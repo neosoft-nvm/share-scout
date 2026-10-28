@@ -19,7 +19,7 @@ describe('Cloud sign-in lifecycle', () => {
     await waitFor(() => expect((screen.getByLabelText('Mount folder path') as HTMLInputElement).value).toContain('/home/test'));
     fireEvent.change(screen.getByLabelText('Mount folder path'),{target:{value:'/home/test/My Cloud'}});
     fireEvent.click(screen.getByRole('button',{name:'Connect Account'}));
-    await waitFor(() => expect(add).toHaveBeenCalledWith(expect.objectContaining({source:'unique',target:'/home/test/My Cloud',status:'Disconnected'})));
+    await waitFor(() => expect(add).toHaveBeenCalledWith(expect.objectContaining({source:'unique',target:'/home/test/My Cloud',auto:false,status:'Disconnected'})));
   });
   it('cancels the owned OAuth session', async () => {
     api.cloudStep.mockResolvedValue({State:'choose',Option:{Help:'Choose a drive'}}); const close=vi.fn();

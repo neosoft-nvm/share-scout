@@ -65,3 +65,21 @@ class UpdateDigestTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'verification failed'):updates.stage('0.7.0')
             self.assertEqual((installed/'original').read_text(),'keep')
             self.assertEqual(list(Path(directory).glob('sharescout-native-update-*')),[])
+
+class ConnectionPreservationTests(unittest.TestCase):
+    def test_upgrade_never_restores_removed_cloud_connection_from_backup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home=Path(directory)
+            install=home/'.local/share/ShareScoutDesktop';install.mkdir(parents=True)
+            (install/'original').write_text('old app')
+            state=home/'.config/ResourceMapper';state.mkdir(parents=True)
+            current=state/'connections.json';current.write_text('[]')
+            backup=state/'connections.backup.json'
+            old='[{"name":"Google Drive","kind":"Google Drive","source":"old-remote","auto":true}]'
+            backup.write_text(old)
+            stage=install.parent/'sharescout-native-update-test';candidate=stage/'candidate';candidate.mkdir(parents=True)
+            (candidate/'release.json').write_text('{"version":"0.7.1"}')
+            with patch.object(updates,'install_root',return_value=install), patch.object(updates,'launcher'):
+                updates.apply(stage,launch=False)
+            self.assertEqual(current.read_text(),'[]')
+            self.assertEqual(backup.read_text(),old)

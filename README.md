@@ -2,7 +2,7 @@
 <!-- ChatGPTR test -->
 **Version rollback Test Completed**
 
-# ShareScout 0.7.0 — find, pick, connect
+# ShareScout 0.7.1 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
 
@@ -185,6 +185,12 @@ Click **Connect cloud storage**, choose Google Drive or OneDrive, then **Sign in
 Already configured accounts appear in the same dialog: select one and click **Connect saved account**. Existing accounts are kept. New sign-ins use unique account names so they cannot overwrite another account. Cancel stops sign-in and removes the unfinished account created by that dialog. Browser sign-in times out after five minutes and can be retried. Cloud account setup uses rclone’s [application configuration protocol](https://rclone.org/commands/rclone_config_create/); use a current rclone version supporting `--non-interactive`.
 
 Cloud drives remain mounted while the app is open. Disconnect cloud drives before closing and allow pending uploads to finish. This utility mounts cloud storage; it is not an offline backup client. Windows cloud mounts require WinFsp, Linux cloud mounts require FUSE. The setup scripts install these dependencies.
+
+## Control automatic reconnection
+
+Select a saved folder and use **Reconnect selected folder when app opens** to choose whether ShareScout reconnects it at startup. **Disconnect** now turns this option off, so an app restart or update does not reconnect a folder you just disconnected. Manually connecting it again does not turn automatic reconnection back on.
+
+New cloud connections leave automatic reconnection off unless you explicitly enable **Reconnect when ShareScout opens**. **Remove** deletes the saved connection after any required disconnect. An app update preserves the current saved list and does not restore removed connections from its backup. A saved cloud sign-in may remain available for manual account selection; it is not automatically reconnected merely because that sign-in exists.
 
 ## Local settings
 

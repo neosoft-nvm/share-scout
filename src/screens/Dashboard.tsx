@@ -32,6 +32,7 @@ interface DashboardProps {
   onCheckTools?: () => void;
   onNetworkInfo?: () => void;
   onPermanentMount?: (item: ResourceItem) => void;
+  onToggleAuto?: (index: number, auto: boolean) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -50,6 +51,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onCheckTools,
   onNetworkInfo,
   onPermanentMount,
+  onToggleAuto,
   onRefreshConnections,
 }) => {
   const selectedItem = selectedIndex !== null ? resources[selectedIndex] : null;
@@ -100,10 +102,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Saved & Connected Folders Section matching mockup */}
       <section className="folder-section">
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-base font-bold text-slate-900">
             Saved & Connected Folders
           </h2>
+          <label className="flex items-center gap-2 text-xs text-slate-600">
+            <input type="checkbox" checked={!!selectedItem?.auto} disabled={busy || !selectedItem || selectedItem.mountMode === 'system' || !onToggleAuto}
+              onChange={event => selectedIndex !== null && onToggleAuto?.(selectedIndex, event.target.checked)} />
+            Reconnect selected folder when app opens
+          </label>
           <button className="text-xs underline text-slate-600" disabled={busy} onClick={onRefreshConnections}>Refresh</button>
         </div>
 

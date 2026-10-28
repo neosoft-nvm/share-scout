@@ -142,10 +142,20 @@ def invoke(payload):
         raise RuntimeError('Permanent mounts require Linux with systemd.')
     if not shutil.which('pkexec'):
         raise RuntimeError('Administrator approval is unavailable. Install polkit and open ShareScout in your desktop session.')
-    result = subprocess.run(['pkexec', '/usr/bin/python3', '-I', str(Path(__file__).resolve()), '--admin'],
-                            input=json.dumps(payload), capture_output=True, text=True, timeout=600)
-    if result.returncode in (126, 127):
-        raise RuntimeError('Administrator approval was cancelled or unavailable. Nothing was changed.')
+    approval = [shutil.which('pkexec'), '--disable-internal-agent', '/usr/bin/python3', '-I', str(Path(__file__).resolve()), '--admin']
+    # A remotely updated app may still belong to an ended SSH session. Ask from
+    # the desktop user manager so polkit can reach the existing graphical agent.
+    runner = shutil.which('systemd-run')
+    if runner:
+        approval = [runner, '--user', '--quiet', '--wait', '--pipe', '--collect', '--service-type=exec'] + approval
+    result = subprocess.run(approval, input=json.dumps(payload), capture_output=True, text=True, timeout=600)
+    if result.returncode == 126:
+        raise RuntimeError('Administrator approval was cancelled. Nothing was changed.')
+    if result.returncode == 127:
+        detail = getattr(result, 'stderr', '')
+        if 'No authentication agent found' in detail:
+            raise RuntimeError('No desktop administrator-approval agent was found. Open ShareScout from the Applications menu in your signed-in desktop session and retry. Nothing was changed.')
+        raise RuntimeError('Administrator approval is unavailable. Check that your desktop session and polkit are running. Nothing was changed.')
     try:
         response = json.loads(result.stdout)
     except ValueError as exc:

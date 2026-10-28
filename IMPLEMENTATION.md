@@ -18,7 +18,7 @@ Local shares stay password-protected, with read-only selected initially. The unu
 
 ## Permanent system mounts
 
-`permanent_mounts.py` is the isolated Linux helper. The frontend requests defaults and a preview through the allowlisted native bridge; only an explicit confirmation invokes `pkexec /usr/bin/python3 -I ... --admin`. The helper identifies the caller through `PKEXEC_UID`, serializes changes, validates SMB roots and direct `/mnt/sharescout` children, rejects symlink/conflicting targets, and creates only its managed systemd units and root-owned credential/metadata files. It leaves `/etc/fstab` unchanged.
+`permanent_mounts.py` is the isolated Linux helper. The frontend requests defaults and a preview through the allowlisted native bridge; only an explicit confirmation invokes `pkexec --disable-internal-agent /usr/bin/python3 -I ... --admin` through `systemd-run --user --pipe` when available. This reaches the desktop graphical approval agent even after a remote update. JSON credentials remain on stdin, outside command arguments. The helper identifies the caller through `PKEXEC_UID`, serializes changes, validates SMB roots and direct `/mnt/sharescout` children, rejects symlink/conflicting targets, and creates only its managed systemd units and root-owned credential/metadata files. It leaves `/etc/fstab` unchanged.
 
 `PermanentMountModal.tsx` separates configuration, confirmation, success and removal. Credentials cross the privileged boundary through stdin. Unit/readback and selected-account directory access must succeed before success; rollback keeps busy mounts recoverable. Managed mounts are merged into saved connections on refresh and cannot accidentally fall back to GVfs or the ordinary Disconnect/Remove actions.
 

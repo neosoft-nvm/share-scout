@@ -48,10 +48,23 @@ class MountInputTests(unittest.TestCase):
             self.assertNotIn(AUTH['password'], str(args))
             self.assertIn(AUTH['password'], kwargs['input'])
             self.assertIn('-I', args[0])
+            self.assertIn('--pipe', args[0])
+            self.assertIn('--disable-internal-agent', args[0])
 
     def test_cancelled_admin_approval_is_not_success(self):
         with patch.object(mounts, 'supported', return_value=True), patch.object(mounts.shutil, 'which', return_value='pkexec'), patch.object(mounts.subprocess, 'run', return_value=SimpleNamespace(returncode=126, stdout='')):
             with self.assertRaisesRegex(RuntimeError, 'cancelled'): mounts.invoke({})
+
+
+class ApprovalContextTests(unittest.TestCase):
+    def test_missing_desktop_agent_is_distinguished_from_cancel(self):
+        result=SimpleNamespace(returncode=127,stdout='',stderr='No authentication agent found')
+        with patch.object(mounts,'supported',return_value=True), patch.object(mounts.shutil,'which',side_effect=lambda name:'/usr/bin/'+name), patch.object(mounts.subprocess,'run',return_value=result) as run:
+            with self.assertRaisesRegex(RuntimeError,'No desktop administrator-approval agent'):
+                mounts.invoke({'credentials':AUTH})
+            command=run.call_args.args[0]
+            self.assertEqual(command[:2],['/usr/bin/systemd-run','--user'])
+            self.assertNotIn(AUTH['password'],str(command))
 
 
 class ManagedMountTests(unittest.TestCase):

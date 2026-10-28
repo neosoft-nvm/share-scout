@@ -17,6 +17,7 @@ export function CloudModal({ isOpen, onClose, onAddCloudAccount }: {
   const [ready, setReady] = useState(false);
   const [question, setQuestion] = useState<CloudQuestion | null>(null);
   const [answer, setAnswer] = useState('');
+  const [auto, setAuto] = useState(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [windows, setWindows] = useState(false);
@@ -49,7 +50,7 @@ export function CloudModal({ isOpen, onClose, onAddCloudAccount }: {
   async function connectRemote(value: string) {
     completed.current = true;
     setStatus('Connecting your cloud drive…');
-    await onAddCloudAccount({ name: driveName.trim(), kind: provider, source: value, target: mountPath.trim(), auto: true, status: 'Disconnected' });
+    await onAddCloudAccount({ name: driveName.trim(), kind: provider, source: value, target: mountPath.trim(), auto, status: 'Disconnected' });
     onClose();
   }
   async function submit() {
@@ -90,6 +91,7 @@ export function CloudModal({ isOpen, onClose, onAddCloudAccount }: {
       {question && <label className="field-label">{question.Option?.Help || 'Choose an option'}
         {question.Option?.Exclusive ? <select className="field" value={answer} onChange={e => setAnswer(e.target.value)} disabled={busy} required={question.Option.Required}><option value="">Choose…</option>{question.Option.Examples?.map(x => <option key={x.Value} value={x.Value}>{x.Help || x.Value}</option>)}</select> : <input className="field" type={question.Option?.IsPassword ? 'password' : 'text'} required={question.Option?.Required} value={answer} onChange={e => setAnswer(e.target.value)} disabled={busy} />}
       </label>}
+      <label className="flex gap-2 text-sm"><input type="checkbox" checked={auto} disabled={busy} onChange={e => setAuto(e.target.checked)} />Reconnect when ShareScout opens</label>
       {status && <p role="status" className="text-sm text-slate-600">{status}</p>}
       {error && <p role="alert" className="error-message">{error}</p>}
       <div className="dialog-actions"><button type="button" disabled={busy && completed.current} className="secondary" onClick={() => void close()}>Cancel</button><button disabled={!ready || busy} className="primary">{busy ? 'Connecting…' : question ? 'Continue' : completed.current ? 'Retry connection' : 'Connect Account'}</button></div>

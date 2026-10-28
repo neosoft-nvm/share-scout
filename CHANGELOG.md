@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1 — 2026-10-28
+
+- Route permanent-mount approval through the desktop user manager so remotely launched apps can reach the graphical polkit agent; distinguish cancellation from a missing agent.
+- Manual Disconnect now disables startup reconnection for that saved folder.
+- Add a visible reconnect toggle for the selected folder; cloud setup now defaults to no automatic reconnection.
+- Cover disconnect/restart, remove/restart, and update preservation of removed cloud connections with regression checks.
+
 ## 0.7.0 — 2026-10-28
 
 - Add Permanent Mount to network discovery and saved SMB connections on Linux.
