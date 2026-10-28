@@ -13,7 +13,7 @@ Authoritative source: `/home/lsparks1/VsCode/share-scout`. Current feature versi
 - The user authorized versioning, commits and repository pushes, and deployment to .20 (lsparks1/Zorin) and .30 (leesparks/Fedora).
 - Unit tests and a simulated UI check do not prove real administrator prompts, network mounts, reboot reconnection, or Plex playback. Those require target-device verification.
 - Validation: 167 Python, 34 frontend and 6 native tests pass; generated units pass systemd validation.
-- Installed matching 0.7.2 binaries locally, on .20 and .30; saved connections preserved. The .30 process is waiting on disk I/O before showing a window; placement readback remains pending. See HANDOFF.md.
+- Installed matching 0.7.2 binaries locally, on .20 and .30; saved connections preserved. The .30 startup disk wait cleared; direct X11 readback confirms the current frame fits the usable screen. See HANDOFF.md.
 - Permanent-mount approval uses the desktop user manager so SSH-launched apps can reach the graphical polkit agent.
 - Manual disconnect turns off startup reconnect; the dashboard provides an explicit toggle. See HANDOFF.md.
 - Keep responses short and concise.

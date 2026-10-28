@@ -1,3 +1,16 @@
+# ShareScout 0.7.2 — 2026-10-28
+
+- Share a Local Folder now opens Folders Shared by This Computer, including existing Samba/Windows folder shares. Set Up a Share opens creation; Done/Cancel returns to refreshed inventory. Connections to Network & Cloud Folders is labeled separately.
+- Local inventory includes paths/access and hidden/disabled status, excludes printers, surfaces read failures/partial results, and makes no reachability claim. Live readback verified this host and .20; Windows is covered by mocked tests only.
+- Added packaged SELinux NTFS/FUSE detection and explicitly approved repair in Sharing Diagnostics and new-share setup. No NTFS relabeling; SELinux stays enabled.
+- User approved persistent samba_share_fusefs on Fedora. Actual .20 SMB directory read then passed for the affected /mnt/games share. Actual new permanent mount/removal and Plex playback remain user checks.
+- Connection errors identify the saved share and SMB address. Movies at .15 is the saved startup source that returned No route to host; no saved connections were removed.
+- Native startup maximizes compact/scaled displays and bounds larger windows in physical work-area coordinates. On .30 startup briefly waited on disk I/O, then the window appeared. Direct X11 geometry readback (wmctrl applies a decoration offset) found client (365,56,940,680), frame (360,27,950,714), fully within work area (0,27,1366,741). User visual acceptance is still separate.
+- Validation: 167 Python + 34 frontend + 6 Rust tests pass; production frontend/native builds pass.
+- Installed matching 0.7.2 binaries locally, .20 and .30. SHA-256: 65693e820f235ee2479d74d61d527deccdf52e28ca7c0b19792c20c2c533e421.
+- ZIP SHA-256: 2fb7906fa400e1583f939cad0a74014b2e75ecd1d6e67817ec07d8f9f9744a43. Every installation preserved saved connection bytes exactly; all reported zero saved clouds/rclone and empty startup-error logs.
+- User authorized versions, commits, repository pushes and deployment to .20/.30. Feature commit 94cc2f1 and tag v0.7.2 pushed. No existing mounts or Plex libraries changed.
+
 # ShareScout 0.7.1 — 2026-10-28
 
 - Corrected permanent-mount administrator approval after remote deployment. The Zorin app had remained in a closing SSH scope; pkexec reported no authentication agent. Approval now runs through the desktop user manager with stdin-only payloads and no terminal fallback. Missing-agent and cancellation errors are distinct.
