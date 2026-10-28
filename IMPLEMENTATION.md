@@ -1,4 +1,4 @@
-# ShareScout 0.6.1 repair
+# ShareScout 0.7.0 desktop
 
 Lead: Tommy. Authoritative source: `/home/lsparks1/VsCode/share-scout`.
 
@@ -15,6 +15,14 @@ React/TypeScript supplies the desktop UI, Tauri supplies the native window, and 
 Cloud mounts use rclone's full VFS cache. An ephemeral authenticated loopback status endpoint checks open files and queued/running/errored uploads before disconnecting. Its random credential is passed through the child environment and kept in memory. Passwords are remembered only on explicit opt-in through the existing OS credential store.
 
 Local shares stay password-protected, with read-only selected initially. The unused guest-access control was removed following the user's decision. Network device categories and share permissions are displayed only when actually supplied; IP suffixes and folder names do not establish those properties.
+
+## Permanent system mounts
+
+`permanent_mounts.py` is the isolated Linux helper. The frontend requests defaults and a preview through the allowlisted native bridge; only an explicit confirmation invokes `pkexec /usr/bin/python3 -I ... --admin`. The helper identifies the caller through `PKEXEC_UID`, serializes changes, validates SMB roots and direct `/mnt/sharescout` children, rejects symlink/conflicting targets, and creates only its managed systemd units and root-owned credential/metadata files. It leaves `/etc/fstab` unchanged.
+
+`PermanentMountModal.tsx` separates configuration, confirmation, success and removal. Credentials cross the privileged boundary through stdin. Unit/readback and selected-account directory access must succeed before success; rollback keeps busy mounts recoverable. Managed mounts are merged into saved connections on refresh and cannot accidentally fall back to GVfs or the ordinary Disconnect/Remove actions.
+
+The native entry point also applies WebKit's DMA-BUF workaround when an NVIDIA kernel module is present, before GUI threads start, respecting explicit environment overrides.
 
 ## Build and install
 
@@ -39,7 +47,7 @@ npm run build
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-Verified locally: 129 Python tests, 18 frontend tests and 3 Rust tests passed (including the embedded production interface). TypeScript, production frontend and Linux native release builds succeeded. The 0.6.1 runtime was installed and its files/menu launcher checked; it was not launched because this session cannot access the native display. The previous menu launcher is backed up as `resource-mapper.desktop.before-native`.
+Historical 0.6.1 verification: 129 Python tests, 18 frontend tests and 3 Rust tests passed (including the embedded production interface). TypeScript, production frontend and Linux native release builds succeeded. The 0.6.1 runtime was installed and its files/menu launcher checked; it was not launched because this session cannot access the native display. The previous menu launcher is backed up as `resource-mapper.desktop.before-native`.
 
 Regression coverage includes failed mounts, settings preservation, credential forwarding, cloud OAuth cancellation, selected mount paths, upload protection, active scanning, and update archive validation/rollback. Passing tests do not establish real cloud access or target-device behavior.
 
@@ -54,3 +62,5 @@ Build and install in one command (installation runs only after a successful buil
 ```bash
 python3 scripts/build_install_desktop.py
 ```
+
+0.7.0 verification: current test results and delivery status are recorded in HANDOVER.md and HANDOFF.md. New mount checks use controlled mocks; real administrator approval, SMB mounting, reboot reconnection, and Plex playback require device verification.

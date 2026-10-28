@@ -9,6 +9,7 @@ import { ShareFolderModal } from './components/ShareFolderModal';
 import { DiagnosticsModal } from './components/DiagnosticsModal';
 import { NetworkInfoModal } from './components/NetworkInfoModal';
 import { CredentialsModal } from './components/CredentialsModal';
+import { PermanentMountModal } from './components/PermanentMountModal';
 import { UpdateModal } from './components/UpdateModal';
 
 const same = (a: ResourceItem, b: ResourceItem) => a.kind === b.kind && a.source === b.source;
@@ -19,6 +20,7 @@ export function App() {
   const items = useRef<ResourceItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [modal, setModal] = useState('');
+  const [mountItem, setMountItem] = useState<ResourceItem | null>(null);
   const [error, setError] = useState('');
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [authItem, setAuthItem] = useState<ResourceItem | null>(null);
@@ -71,7 +73,7 @@ export function App() {
     void perform(async () => {
       const saved = await loadResources(); loaded.current = true;
       show(saved); setSelectedIndex(saved.length ? 0 : null);
-      for (const item of saved.filter(x => x.auto && x.status !== 'Connected')) {
+      for (const item of saved.filter(x => x.auto && x.mountMode !== 'system' && x.status !== 'Connected')) {
         try { await connect(item); }
         catch (err) { setError(errorMessage(err)); if (err instanceof ApiError && err.auth) break; }
       }
@@ -104,15 +106,23 @@ export function App() {
       onOpenDiscovery={() => setCurrentScreen('discovery')} onOpenCloud={() => setModal('cloud')} onOpenShareFolder={() => setModal('share')} onOpenManualAddress={() => setModal('manual')} onCheckTools={() => setModal('diagnostics')}
       onRefreshConnections={() => void perform(async () => { show(await loadResources()); })}
       onNetworkInfo={() => setModal('network-info')}
+      onPermanentMount={item => setMountItem(item)}
     /> : <Discovery onBack={() => setCurrentScreen('dashboard')} onConnectShare={async (address, name, auto) => {
       await addAndConnect({ name: `${name} · ${address}`, kind: 'Network share', source: `smb://${address}/${encodeURIComponent(name)}`, target: '', auto, status: 'Disconnected' });
+    }} onPermanentMountShare={async (address, name) => {
+      const item: ResourceItem = { name: `${name} · ${address}`, kind: 'Network share', source: `smb://${address}/${encodeURIComponent(name)}`, target: '', auto: false, status: 'Disconnected' };
+      const existing = items.current.find(x => same(x, item));
+      if (!existing) await persist([...items.current, item]);
+      setSelectedIndex(items.current.findIndex(x => same(x, item)));
+      setCurrentScreen('dashboard'); setMountItem(existing || item);
     }} />}
     <CloudModal isOpen={modal === 'cloud'} onClose={() => setModal('')} onAddCloudAccount={addAndConnect} />
     <ManualAddressModal isOpen={modal === 'manual'} onClose={() => setModal('')} onAddAddress={async (name, source, auto) => addAndConnect({ name, source, auto, kind: 'Network share', status: 'Disconnected', target: '' })} />
     <ShareFolderModal isOpen={modal === 'share'} onClose={() => setModal('')} />
     <DiagnosticsModal isOpen={modal === 'diagnostics'} onClose={() => setModal('')} />
     <NetworkInfoModal isOpen={modal === 'network-info'} onClose={() => setModal('')} />
-    {update && !modal && !authItem && !working && currentScreen === 'dashboard' && <UpdateModal result={update} onClose={() => setUpdate(null)} />}
+    {mountItem && <PermanentMountModal item={mountItem} onClose={() => setMountItem(null)} onBusy={value => { busy.current = value; setWorking(value); }} onUpdated={persist} />}
+    {update && !mountItem && !modal && !authItem && !working && currentScreen === 'dashboard' && <UpdateModal result={update} onClose={() => setUpdate(null)} />}
     {authItem && <CredentialsModal isOpen address={authItem.source} onClose={() => setAuthItem(null)} onSubmit={async (credentials, remember) => {
       const connected = await connect(authItem, credentials, remember); await openInFileManager(connected); setAuthItem(null); setError(connected.warning || '');
     }} />}

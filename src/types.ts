@@ -1,6 +1,7 @@
 export interface ResourceItem {
   id?: string;
   warning?: string;
+  mountMode?: 'system';
   name: string;
   kind: 'Network share' | 'Google Drive' | 'OneDrive';
   source: string;

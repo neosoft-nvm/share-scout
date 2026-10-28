@@ -31,6 +31,7 @@ interface DashboardProps {
   onRefreshConnections?: () => void;
   onCheckTools?: () => void;
   onNetworkInfo?: () => void;
+  onPermanentMount?: (item: ResourceItem) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -48,6 +49,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onOpenManualAddress,
   onCheckTools,
   onNetworkInfo,
+  onPermanentMount,
   onRefreshConnections,
 }) => {
   const selectedItem = selectedIndex !== null ? resources[selectedIndex] : null;
@@ -112,7 +114,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="col-span-2">Type</div>
             <div className="col-span-4">Network Location or Path</div>
             <div className="col-span-2 text-center">Status</div>
-            <div className="col-span-1 text-center">On-Launch</div>
+            <div className="col-span-1 text-center">Reconnect</div>
           </div>
 
           {resources.length === 0 ? (
@@ -165,7 +167,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           ? 'OneDrive'
                           : isGoogle
                           ? 'Google Drive'
-                          : 'SMB'}
+                          : item.mountMode === 'system' ? 'SMB · Permanent' : 'SMB'}
                       </span>
                     </div>
 
@@ -181,7 +183,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                     {/* On-Launch */}
                     <div className="col-span-1 text-center font-medium text-slate-700">
-                      {item.auto ? 'On' : 'Off'}
+                      {item.mountMode === 'system' ? 'At boot' : item.auto ? 'On' : 'Off'}
                     </div>
                   </div>
                 );
@@ -215,7 +217,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             type="button"
-            disabled={busy || !selectedItem || selectedItem.status !== 'Connected'}
+            disabled={busy || !selectedItem || selectedItem.mountMode === 'system' || selectedItem.status !== 'Connected'}
             onClick={() => selectedIndex !== null && onDisconnect(selectedIndex)}
             className="py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 disabled:opacity-50 transition-all cursor-pointer disabled:cursor-not-allowed"
           >
@@ -224,13 +226,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             type="button"
-            disabled={busy || !selectedItem || selectedItem.status === 'Connecting…'}
+            disabled={busy || !selectedItem || selectedItem.mountMode === 'system' || selectedItem.status === 'Connecting…'}
             onClick={() => selectedIndex !== null && onRemove(selectedIndex)}
             className="py-2.5 px-4 rounded-xl text-xs font-semibold text-rose-600 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 disabled:opacity-50 transition-all cursor-pointer disabled:cursor-not-allowed"
           >
             Remove
           </button>
         </div>
+
+        <button type="button" className="secondary" disabled={busy || !selectedItem || selectedItem.kind !== 'Network share'} onClick={() => selectedItem && onPermanentMount?.(selectedItem)}>
+          {selectedItem?.mountMode === 'system' ? 'Manage Permanent Mount' : 'Permanent Mount…'}
+        </button>
 
         {/* Right-aligned links from mockup */}
         <div className="flex items-center gap-5 text-xs">

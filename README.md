@@ -2,11 +2,27 @@
 <!-- ChatGPTR test -->
 **Version rollback Test Completed**
 
-# ShareScout 0.6.2 — find, pick, connect
+# ShareScout 0.7.0 — find, pick, connect
 
 Discover and connect shared resources across PCs, network storage, and cloud services without knowing hostnames or share names. ShareScout is for desktop PCs and laptops, with Android support planned for the future.
 
 After local folder sharing succeeds, the dialog shows the sharing address and a **Done** button. Click **Done** to return to the main screen; this keeps the folder shared. Failed setup remains open for correction or cancellation. Opening the Windows sharing wizard does not confirm completion.
+
+## Permanent mounts for Plex (Linux)
+
+Sharing publishes a local folder to the network. Connecting opens a remote folder for your desktop session. **Permanent Mount** gives a remote SMB share a stable local path that background services can use after reboot and while ShareScout is closed.
+
+1. On the computer that needs the files, choose **Find Network Folders**, select the device and shared folder, then **Permanent Mount…**. You can also select a saved network folder on the main screen and click **Permanent Mount…**.
+2. Choose the mount folder under `/mnt/sharescout` and who needs access: your account or **Plex media server** when installed. Your own account also retains access. Read-only is selected by default.
+3. Enter the sharing computer's username/password, or leave the fields blank to reuse a ShareScout sign-in.
+4. Click **Review Mount**, review the path and access, then explicitly approve saving the sharing sign-in in an administrator-only file. Click **Confirm & Mount** and approve the operating system's administrator prompt.
+5. When setup succeeds, add the displayed folder path to Plex on **this receiving computer**. ShareScout does not edit Plex libraries automatically.
+
+Setup installs `cifs-utils` if missing and creates managed systemd mount/automount units. Sign-in details are sent through stdin and stored in root-owned `0600` files under `/etc/sharescout-mounts`; they are not stored in connection settings, logs or command arguments. The share is mounted and checked as the selected local account before success is reported. Failed setup removes its changes unless a busy mount prevents rollback; ShareScout reports that condition and preserves the configuration for recovery. Existing fstab entries, mounts and media files are kept.
+
+Select a managed folder and click **Manage Permanent Mount → Remove Permanent Mount → Confirm Removal** to undo setup. Administrator approval is required. Busy folders are not force-unmounted. Disconnect and Remove on the main screen apply to ordinary connections; permanent mounts use their dedicated management dialog.
+
+The server must remain reachable. Read-only remains subject to server permissions. Mounts reconnect on access after boot; a successful setup does not prove that a future reboot or every Plex media file has been tested. Windows desktop mapping and cloud connections retain their existing behavior; this permanent service-mount option requires Linux with systemd and polkit.
 
 ## Current native desktop build
 

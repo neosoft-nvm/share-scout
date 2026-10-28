@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT))
 from app_info import VERSION
 
 BACKEND = ['desktop_service', 'network', 'linux_mount', 'credentials', 'cloud_setup',
-           'folder_share', 'sharing_setup', 'updates', 'native_updates', 'single_instance', 'app_info']
+           'permanent_mounts', 'folder_share', 'sharing_setup', 'updates', 'native_updates', 'single_instance', 'app_info']
 
 
 def build(binary=None, output=None):

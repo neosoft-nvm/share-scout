@@ -133,6 +133,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({ isOpen, onCl
 
         <p className="text-sm text-slate-600">Password-protected sharing. Sign in from other devices with this computer’s sharing account.</p>
         </fieldset>
+        <p className="text-xs text-slate-500">Sharing makes this folder available on the network. For Plex on another Linux computer, select this share there and choose Permanent Mount.</p>
         {error && <p role="alert" className="error-message">{error}</p>}
         {message && <p role="status" className="text-sm text-slate-600">{message}</p>}
 

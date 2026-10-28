@@ -5,8 +5,9 @@ import { ApiError, errorMessage, listDeviceShares, scanLocalNetwork, stopScan } 
 import { CredentialsModal } from '../components/CredentialsModal';
 import { Modal } from '../components/Modal';
 
-export function Discovery({ onBack, onConnectShare }: {
+export function Discovery({ onBack, onConnectShare, onPermanentMountShare }: {
   onBack: () => void; onConnectShare: (address: string, name: string, auto: boolean) => Promise<void>;
+  onPermanentMountShare?: (address: string, name: string) => Promise<void>;
 }) {
   const [scanning, setScanning] = useState(false);
   const [devices, setDevices] = useState<DiscoveredDevice[]>([]);
@@ -85,7 +86,10 @@ export function Discovery({ onBack, onConnectShare }: {
         try { await onConnectShare(selectedDevice, selectedShare, auto); onBack(); }
         catch (err) { setError(errorMessage(err)); if (err instanceof ApiError && err.auth) setShowAuth(true); }
         finally { setConnecting(false); }
-      }}>{connecting ? 'Connecting…' : 'Connect Selected Folder'}</button><button className="secondary" disabled={connecting} onClick={() => void leave().catch(err => setError(errorMessage(err)))}>Cancel</button><button className="secondary" disabled={connecting} onClick={() => setShowManual(true)}>Manual IP</button></div>
+      }}>{connecting ? 'Connecting…' : 'Connect Selected Folder'}</button>{onPermanentMountShare && <button className="secondary" disabled={!selectedDevice || !selectedShare || loading || connecting} onClick={() => {
+        setConnecting(true); setError('');
+        void onPermanentMountShare(selectedDevice, selectedShare).catch(err => setError(errorMessage(err))).finally(() => setConnecting(false));
+      }}>Permanent Mount…</button>}<button className="secondary" disabled={connecting} onClick={() => void leave().catch(err => setError(errorMessage(err)))}>Cancel</button><button className="secondary" disabled={connecting} onClick={() => setShowManual(true)}>Manual IP</button></div>
     </footer>
     {showAuth && <CredentialsModal isOpen address={selectedDevice} onClose={() => setShowAuth(false)} onSubmit={async (credentials, remember) => { await selectDevice(selectedDevice, credentials, remember); setShowAuth(false); }} />}
     <Modal isOpen={showManual} onClose={() => setShowManual(false)} title="Find a Device by IP" subtitle="Enter the IPv4 address of the device offering shared folders.">

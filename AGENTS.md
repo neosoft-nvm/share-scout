@@ -10,7 +10,7 @@
 2. **Platform Scope**: Linux (Tauri/GIO/Samba), Windows (Tauri/NetUse/WinFsp), and Android (Capacitor 8 APK via GitHub Actions).
 3. **Display Targets**: Minimum test target is 1280x720 (720p); scaling-aware up to 4K (100%, 150%, 200%).
 4. **Testing Protocol**: Run `python3 -m unittest discover -s tests` before and after all changes. All tests must pass.
-5. **Release Milestone**: Repair build `v0.6.1` integrates the React/Tauri interface with the existing platform services.
+5. **Release Milestone**: Current feature build `v0.7.0` adds permanent Linux mounts to the React/Tauri desktop and existing platform services.
 6. **Commitment & Delivery Integrity**: Never promise designs, features, or UI capabilities that cannot be delivered exactly as presented. Verify feasibility, rendering engines, and dependencies upfront before committing to deliverables.
 7. **Communication Standard**: Keep all responses short, concise, and directly to the point.
 

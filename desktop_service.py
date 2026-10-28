@@ -19,6 +19,7 @@ from urllib.request import Request, urlopen
 import cloud_setup
 import credentials as credential_store
 import network
+import permanent_mounts
 from app_info import VERSION
 
 WINDOWS = os.name == 'nt'
@@ -59,7 +60,8 @@ def validate_items(items):
         if item.get('target') is not None and not isinstance(item['target'], str):
             raise ValueError('A saved connection has an invalid mount location.')
         clean.append({**{k: item[k] for k in ('name', 'kind', 'source')}, 'target': item.get('target') or '',
-                      'auto': bool(item.get('auto')), 'status': 'Disconnected'})
+                      'auto': bool(item.get('auto')), 'status': 'Disconnected',
+                      **({'mountMode': 'system'} if item.get('mountMode') == 'system' and item['kind'] == 'Network share' else {})})
     return clean
 
 
@@ -128,16 +130,24 @@ class DesktopService:
         connected = network.connected_folders()
         actual = {normalize_source(x['source']): x for x in connected}
         for item in items:
-            if item['kind'] == 'Network share':
+            if item['kind'] == 'Network share' and item.get('mountMode') != 'system':
                 found = actual.get(normalize_source(item['source']))
                 if found:
                     item.update(status='Connected', target=found['target'])
-            else:
+            elif item['kind'] != 'Network share':
                 mount = self.mounts.get(resource_key(item))
                 if mount and mount['process'].poll() is None and self.is_mounted(mount['target']):
                     item.update(status='Connected', target=mount['target'])
         sources = {normalize_source(x['source']) for x in items if x['kind'] == 'Network share'}
         items.extend(x for x in connected if normalize_source(x['source']) not in sources)
+        managed = permanent_mounts.records()
+        for record in managed:
+            item = next((x for x in items if x['kind'] == 'Network share' and normalize_source(x['source']) == normalize_source(record['source'])), None)
+            if item is None:
+                item = {'name': Path(record['target']).name, 'kind': 'Network share', 'source': record['source']}
+                items.append(item)
+            item.update(target=record['target'], mountMode='system', auto=False,
+                        status='Connected' if record['connected'] else 'Disconnected')
         return items
 
     @staticmethod
@@ -146,6 +156,15 @@ class DesktopService:
 
     def mount(self, item, auth=None, remember=False):
         item = validate_items([item])[0]
+        if item['kind'] == 'Network share' and item.get('mountMode') == 'system':
+            record = next((x for x in permanent_mounts.records() if normalize_source(x['source']) == normalize_source(item['source'])), None)
+            if not record:
+                raise RuntimeError('This permanent mount is no longer configured. Use Permanent Mount to set it up again.')
+            # Access triggers the system automount; mount timeout bounds offline hosts.
+            result = subprocess.run(['timeout', '35', 'stat', '--', record['target']], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if result.returncode or not permanent_mounts.mounted(record['target'], permanent_mounts.defaults(item['source'])['source']):
+                raise RuntimeError('The permanent mount is offline. Check that the sharing computer is on and reachable.')
+            return {**item, 'target': record['target'], 'auto': False, 'status': 'Connected'}
         if item['kind'] == 'Network share':
             item['source'] = normalize_source(item['source'])
             address = server_address(item['source'])
@@ -234,6 +253,8 @@ class DesktopService:
             raise RuntimeError('Could not verify pending cloud uploads. Keep the drive connected and retry.') from exc
 
     def unmount(self, item):
+        if item.get('mountMode') == 'system':
+            raise RuntimeError('Use Permanent Mount → Remove Permanent Mount to stop and remove this system mount.')
         if item['kind'] == 'Network share':
             if WINDOWS:
                 network.win_disconnect(item['target'] or normalize_source(item['source']))
@@ -394,6 +415,33 @@ class DesktopService:
                     raise ValueError('Finish cloud sign-in first.')
                 self.sessions.pop(args['session'])
             return True
+        if method == 'permanent_defaults':
+            info = permanent_mounts.defaults(args['source'])
+            if info.get('supported'):
+                info['existing'] = next((x for x in permanent_mounts.records() if normalize_source(x['source']) == normalize_source(args['source'])), None)
+            return info
+        if method == 'permanent_preview':
+            if not permanent_mounts.supported():
+                raise RuntimeError('Permanent service mounts require Linux with systemd.')
+            return permanent_mounts.preview(args['source'], args['target'], args['account'], args.get('readOnly', True))
+        if method == 'permanent_apply':
+            source = normalize_source(args['source'])
+            auth = args.get('credentials') or self.get_auth(server_address(source))
+            if not auth:
+                raise PermissionError('Enter the sharing account username and password, or sign in to this device first.')
+            result = permanent_mounts.invoke({'operation': 'create', 'source': source, 'target': args['target'],
+                                             'account': args['account'], 'readOnly': args.get('readOnly', True), 'credentials': auth})
+            return {**result, 'resources': self.refresh()}
+        if method == 'permanent_remove':
+            source = normalize_source(args['source'])
+            result = permanent_mounts.invoke({'operation': 'remove', 'source': source})
+            items = self.read_items()
+            for item in items:
+                if item.get('mountMode') == 'system' and normalize_source(item['source']) == source:
+                    item.pop('mountMode', None)
+                    item.update(target='', auto=False)
+            self.save_items(items)
+            return {**result, 'resources': self.refresh()}
         if method == 'defaults':
             return {'windows': WINDOWS, 'mountRoot': str(Path.home() / 'ShareScout'),
                     'drive': network.free_drive() if WINDOWS else '', 'version': VERSION}

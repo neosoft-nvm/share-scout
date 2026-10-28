@@ -48,3 +48,19 @@ export const installUpdate = (stage: string) => desktopCall<boolean>("install_up
 export interface UpdateInfo { installed: string; latest: string; newer: boolean; canInstall: boolean; }
 export const startupUpdate = () => desktopCall<UpdateInfo | null>('startup_update');
 export const setUpdatePreference = (automatic: boolean) => desktopCall<boolean>('update_preference', { automatic });
+
+export interface PermanentMountPlan {
+  source: string; target: string; account: string; readOnly: boolean; id: string;
+}
+export interface PermanentMountDefaults {
+  supported: boolean; reason?: string; target?: string; account?: string;
+  accounts?: { name: string; label: string }[]; toolsReady?: boolean; approvalAvailable?: boolean;
+  existing?: (PermanentMountPlan & { connected: boolean }) | null;
+}
+export const permanentDefaults = (source: string) => desktopCall<PermanentMountDefaults>('permanent_defaults', { source });
+export const permanentPreview = (source: string, target: string, account: string, readOnly: boolean) =>
+  desktopCall<PermanentMountPlan>('permanent_preview', { source, target, account, readOnly });
+export const permanentApply = (source: string, target: string, account: string, readOnly: boolean, credentials?: Credentials) =>
+  desktopCall<{ ok: boolean; target: string; resources: ResourceItem[] }>('permanent_apply', { source, target, account, readOnly, credentials });
+export const permanentRemove = (source: string) =>
+  desktopCall<{ ok: boolean; removed: boolean; resources: ResourceItem[] }>('permanent_remove', { source });

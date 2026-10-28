@@ -1,3 +1,17 @@
+# ShareScout 0.7.0 — 2026-10-28
+
+- Added Permanent Mount to discovery and saved SMB folders (Linux/systemd).
+- UI previews path/account/access and requires explicit root-credential-storage consent and desktop administrator approval.
+- Managed systemd units, protected stdin credentials, selected-account readback, rollback and separate confirmed removal; existing fstab/mounts are untouched.
+- System mounts remain independent of the desktop connection lifecycle; sharing dialog explains the difference.
+- NVIDIA WebKit workaround now runs before GUI startup and respects explicit overrides.
+- Validation: 152 Python tests, 27 frontend tests, 3 native tests, production builds and generated-unit systemd verification pass.
+- Simulated 1280x720 dialog flow checked through review, consent and Done. This did not create a real mount.
+- Installed 0.7.0 locally and on .20; matching binary SHA-256 bc0c15d65f1e591d2591e6e0ccfbbe104741c896a437b36e40eac8c4fa7517b5; app processes remain running.
+- .30 package transferred but installation deferred: existing ShareScout has an active cloud drive or privileged operation. User asked to finish/disconnect/close it.
+- Still requires user verification: real polkit prompt, SMB mount/removal, reboot reconnection and Plex playback. No existing mounts or Plex libraries were modified.
+- User authorized versioning, commits and pushes. Current feature version/tag: 0.7.0.
+
 # ShareScout 0.6.2 — 2026-10-27
 
 - Confirmed local sharing success now replaces Cancel/Start Sharing with Done.
